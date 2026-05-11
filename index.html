@@ -2,97 +2,112 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JS Interactive Chess</title>
-    
+    <title>Star Wars: Galactic Chess</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-    
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #05070a;
+            background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                              radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px);
+            background-size: 550px 550px, 350px 350px;
+            color: #4ef0ff;
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #2c3e50;
-            color: white;
-            margin-top: 50px;
+            padding-top: 30px;
+            margin: 0;
         }
 
-        .container {
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 0 0 10px #4ef0ff;
+            margin-bottom: 10px;
+        }
+
+        .game-container {
             display: flex;
-            gap: 20px;
-            background: #34495e;
+            gap: 30px;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 2px solid #4ef0ff;
+            box-shadow: 0 0 20px rgba(78, 240, 255, 0.2);
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
         }
 
-        #myBoard {
-            width: 450px;
-        }
+        /* Custom Board Colors */
+        .white-1e1d7 { background-color: #2c3e50 !important; }
+        .black-3c85d { background-color: #1a252f !important; }
 
-        .info-panel {
-            width: 250px;
+        #myBoard { width: 500px; border: 5px solid #333; }
+
+        .side-panel {
+            width: 280px;
             display: flex;
             flex-direction: column;
         }
 
-        .status-box {
-            background: #2c3e50;
+        .console {
+            border: 1px solid #4ef0ff;
             padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            border-left: 5px solid #27ae60;
+            background: #000;
+            margin-bottom: 15px;
+            flex-grow: 1;
         }
 
-        #move-history {
-            height: 250px;
+        .status-light {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ef0ff;
+            box-shadow: 0 0 8px #4ef0ff;
+            margin-right: 10px;
+        }
+
+        #history {
+            height: 200px;
             overflow-y: auto;
-            background: #1a252f;
-            padding: 10px;
-            font-family: monospace;
-            font-size: 14px;
-            border-radius: 5px;
+            font-size: 0.9em;
+            color: #ffe81f; /* Star Wars Yellow */
+            margin-top: 10px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
         }
 
         button {
-            margin-top: auto;
+            background: transparent;
+            color: #ff4e4e;
+            border: 1px solid #ff4e4e;
             padding: 10px;
             cursor: pointer;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            font-family: inherit;
             font-weight: bold;
-            transition: background 0.2s;
+            transition: all 0.3s;
         }
 
         button:hover {
-            background: #c0392b;
+            background: #ff4e4e;
+            color: black;
+            box-shadow: 0 0 15px #ff4e4e;
         }
-
-        h1 { margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <h1>Grandmaster JS</h1>
+    <h1>Galactic Chess</h1>
 
-    <div class="container">
+    <div class="game-container">
         <div id="myBoard"></div>
 
-        <div class="info-panel">
-            <div class="status-box">
-                <strong>Status:</strong><br>
-                <span id="status">White to move</span>
+        <div class="side-panel">
+            <div class="console">
+                <div><span class="status-light"></span><strong>COMM LINK:</strong></div>
+                <div id="status" style="margin-top:10px;">Awaiting first move...</div>
+                <div id="history"></div>
             </div>
-            
-            <div id="move-history">
-                <strong>History:</strong><hr>
-                <div id="pgn-out"></div>
-            </div>
-
-            <button id="resetBtn">New Game</button>
+            <button onclick="resetGame()">INITIATE SELF-DESTRUCT (RESET)</button>
         </div>
     </div>
 
@@ -103,14 +118,20 @@
     <script>
         var board = null;
         var game = new Chess();
-        var $status = $('#status');
-        var $pgn = $('#pgn-out');
+
+        // Theme piece mapping using icons/placeholders 
+        // In a production app, you'd use local .png files for Vader, Luke, etc.
+        function pieceTheme (piece) {
+            // Mapping pieces to a consistent Star Wars themed set
+            // w=Rebels, b=Empire
+            if (piece.search(/w/) !== -1) {
+                return 'https://chessboardjs.com/img/chesspieces/wikipedia/' + piece + '.png';
+            }
+            return 'https://chessboardjs.com/img/chesspieces/wikipedia/' + piece + '.png';
+        }
 
         function onDragStart (source, piece, position, orientation) {
-            // Cannot move if game over
             if (game.game_over()) return false;
-
-            // Only allow moves for the side whose turn it is
             if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
                 (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
                 return false;
@@ -118,50 +139,43 @@
         }
 
         function onDrop (source, target) {
-            // Logic for move validation
             var move = game.move({
                 from: source,
                 to: target,
-                promotion: 'q' // Simplification: always promote to Queen
+                promotion: 'q'
             });
 
-            // If move is illegal, snap piece back
             if (move === null) return 'snapback';
-
             updateStatus();
         }
 
-        // Update board position after the piece snaps into place
         function onSnapEnd () {
             board.position(game.fen());
         }
 
         function updateStatus () {
             var status = '';
-            var moveColor = (game.turn() === 'b') ? 'Black' : 'White';
+            var moveColor = (game.turn() === 'b') ? 'THE EMPIRE' : 'THE REBELS';
 
-            // Checkmate?
             if (game.in_checkmate()) {
-                status = 'Game over, ' + moveColor + ' is in checkmate.';
-            }
-            // Draw?
-            else if (game.in_draw()) {
-                status = 'Game over, drawn position';
-            }
-            // Game still on
-            else {
-                status = moveColor + ' to move';
+                status = 'TERMINATED: ' + moveColor + ' has fallen.';
+            } else if (game.in_draw()) {
+                status = 'STALEMATE in the sector.';
+            } else {
+                status = moveColor + ' to strike...';
                 if (game.in_check()) {
-                    status += ', ' + moveColor + ' is in check!';
+                    status += ' (DANGER: TARGET IN SIGHT)';
                 }
             }
 
-            $status.html(status);
-            $pgn.html(game.pgn({ max_width: 5, newline_char: '<br>' }));
-            
-            // Scroll history to bottom
-            var historyDiv = document.getElementById("move-history");
-            historyDiv.scrollTop = historyDiv.scrollHeight;
+            $('#status').html(status);
+            $('#history').html('<strong>LOG:</strong><br>' + game.pgn({ max_width: 5, newline_char: '<br>' }));
+        }
+
+        function resetGame() {
+            game.reset();
+            board.start();
+            updateStatus();
         }
 
         var config = {
@@ -169,18 +183,10 @@
             position: 'start',
             onDragStart: onDragStart,
             onDrop: onDrop,
-            onSnapEnd: onSnapEnd
+            onSnapEnd: onSnapEnd,
+            // pieceTheme: pieceTheme // Uncomment this to use custom piece URLs
         };
-
         board = Chessboard('myBoard', config);
-
-        // Reset Game Button
-        $('#resetBtn').on('click', function() {
-            game.reset();
-            board.start();
-            updateStatus();
-        });
-
         updateStatus();
     </script>
 </body>
