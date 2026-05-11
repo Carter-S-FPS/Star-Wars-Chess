@@ -1,98 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Star Wars 3D Chess</title>
+    <meta charset="UTF-8">
+    <title>Star Wars: 2D Sprite Chess</title>
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
-        body { margin: 0; background: #000; overflow: hidden; }
-        #ui { position: absolute; top: 20px; left: 20px; color: #4ef0ff; font-family: monospace; pointer-events: none; }
+        body {
+            background-color: #020205;
+            background-image: radial-gradient(white, rgba(255,255,255,.2) 1px, transparent 20px);
+            background-size: 100px 100px;
+            color: #ffe81f;
+            font-family: 'Arial Black', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+
+        .board-frame {
+            border: 10px solid #333;
+            border-radius: 5px;
+            box-shadow: 0 0 50px rgba(78, 240, 255, 0.3);
+            background: #111;
+            padding: 10px;
+        }
+
+        #myBoard { width: 600px; }
+
+        /* Custom board colors (Dark Space Theme) */
+        .white-1e1d7 { background-color: #2c3e50 !important; } /* Space Blue */
+        .black-3c85d { background-color: #1a1a1a !important; } /* Deep Black */
+
+        .info {
+            margin-top: 20px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #4ef0ff;
+            width: 580px;
+        }
+
+        #status { font-size: 1.5rem; color: #4ef0ff; text-transform: uppercase; }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 30px;
+            background: #ff4e4e;
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <h1>GALACTIC 3D CHESS</h1>
-        <div id="status">INITIALIZING NEURAL LINK...</div>
+
+    <h1 style="text-shadow: 2px 2px #ff4e4e;">GALACTIC SPRITE CHESS</h1>
+
+    <div class="board-frame">
+        <div id="myBoard"></div>
     </div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    <div class="info">
+        <div id="status">Loading Holoprojector...</div>
+        <button onclick="resetBoard()">Reset Mission</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+    <script>
+        var board = null;
+        var game = new Chess();
+
+        // 2D SPRITE MODELS - Web-sourced images
+        const sprites = {
+            // REBELS (White)
+            'wK': 'https://i.ibb.co/Lkh6P6M/luke.png',      // Luke
+            'wQ': 'https://i.ibb.co/L6V2kHm/leia.png',      // Leia
+            'wB': 'https://i.ibb.co/pPzB5Dq/yoda.png',      // Yoda
+            'wN': 'https://i.ibb.co/hR0Z0wz/falcon.png',    // Falcon
+            'wR': 'https://i.ibb.co/mS7Sshh/r2d2.png',      // R2D2
+            'wP': 'https://i.ibb.co/0VpS30s/rebel.png',     // Rebel Soldier
+            
+            // EMPIRE (Black)
+            'bK': 'https://i.ibb.co/Xxd9Zzf/vader.png',     // Vader
+            'bQ': 'https://i.ibb.co/VvzK2m7/palpatine.png', // Emperor
+            'bB': 'https://i.ibb.co/9Vv8F5V/tarkin.png',    // Tarkin
+            'bN': 'https://i.ibb.co/7XkXz7z/boba.png',      // Boba Fett
+            'bR': 'https://i.ibb.co/4P2X4Y8/atat.png',      // AT-AT
+            'bP': 'https://i.ibb.co/zH7j7p4/trooper.png'   // Stormtrooper
+        };
+
+        function pieceTheme(piece) {
+            if (sprites[piece]) return sprites[piece];
+            return 'https://chessboardjs.com/img/chesspieces/wikipedia/' + piece + '.png';
+        }
+
+        function onDragStart (source, piece, position, orientation) {
+            if (game.game_over()) return false;
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                return false;
             }
         }
-    </script>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        function onDrop (source, target) {
+            var move = game.move({ from: source, to: target, promotion: 'q' });
+            if (move === null) return 'snapback';
+            updateStatus();
+        }
 
-        // 1. Setup Scene
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        function onSnapEnd () { board.position(game.fen()); }
 
-        // 2. Lights (Saber Glow Effect)
-        const light = new THREE.PointLight(0x4ef0ff, 100);
-        light.position.set(5, 5, 5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040, 2)); // Soft white light
+        function updateStatus () {
+            var status = '';
+            var moveColor = (game.turn() === 'b') ? 'Empire' : 'Rebels';
 
-        // 3. Create the Board (3D Tiles)
-        const boardGroup = new THREE.Group();
-        for (let x = 0; x < 8; x++) {
-            for (let z = 0; z < 8; z++) {
-                const color = (x + z) % 2 === 0 ? 0x222222 : 0x444444;
-                const geometry = new THREE.BoxGeometry(1, 0.2, 1);
-                const material = new THREE.MeshStandardMaterial({ color: color });
-                const tile = new THREE.Mesh(geometry, material);
-                tile.position.set(x - 3.5, 0, z - 3.5);
-                boardGroup.add(tile);
+            if (game.in_checkmate()) {
+                status = 'Game Over: ' + (game.turn() === 'b' ? 'Rebels' : 'Empire') + ' Win!';
+            } else if (game.in_draw()) {
+                status = 'Draw: Stalemate in the sector';
+            } else {
+                status = moveColor + ' to move...';
+                if (game.in_check()) status += ' (ALERT: CHECK)';
             }
-        }
-        scene.add(boardGroup);
-
-        // 4. Load the "People" (3D Models)
-        const loader = new GLTFLoader();
-
-        // Helper to load models (Example: Vader as Black King)
-        function loadPiece(name, x, z, side) {
-            // Path would be like: './models/vader.glb'
-            loader.load(`./models/${name}.glb`, (gltf) => {
-                const model = gltf.scene;
-                model.scale.set(0.4, 0.4, 0.4);
-                model.position.set(x - 3.5, 0.1, z - 3.5);
-                scene.add(model);
-            }, undefined, (error) => {
-                // If model doesn't exist, we place a "Hologram" cylinder placeholder
-                const placeholderGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.8);
-                const placeholderMat = new THREE.MeshStandardMaterial({ 
-                    color: side === 'empire' ? 0xff0000 : 0x00ff00,
-                    transparent: true,
-                    opacity: 0.6
-                });
-                const mesh = new THREE.Mesh(placeholderGeom, placeholderMat);
-                mesh.position.set(x - 3.5, 0.5, z - 3.5);
-                scene.add(mesh);
-                console.log(`Replace this placeholder with ${name}.glb`);
-            });
+            $('#status').html(status);
         }
 
-        // Initialize characters
-        loadPiece('vader', 4, 7, 'empire'); // King
-        loadPiece('luke', 4, 0, 'rebel');   // King
-
-        camera.position.set(0, 8, 8);
-        const controls = new OrbitControls(camera, renderer.domElement);
-
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
+        function resetBoard() {
+            game.reset();
+            board.start();
+            updateStatus();
         }
-        animate();
+
+        var config = {
+            draggable: true,
+            position: 'start',
+            pieceTheme: pieceTheme,
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        };
+        board = Chessboard('myBoard', config);
+        updateStatus();
     </script>
 </body>
 </html>
