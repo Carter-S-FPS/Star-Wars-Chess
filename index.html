@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Split Droid Voxel Chess</title>
+    <title>Complete Star Wars Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -14,8 +14,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">DROID DIVISION COMPLETE</div>
-        <div id="sub-text">R2-D2 (LEFT) | C-3PO (RIGHT)</div>
+        <div id="status-text">FLEET RESTORED</div>
+        <div id="sub-text">X-WINGS & STAR DESTROYERS ONLINE</div>
     </div>
 
     <div class="controls">
@@ -80,15 +80,17 @@
             const isEmp = (side === 'b');
             group.userData = { type, side, gridX, gridZ };
 
-            let v = { main: [], head: [], legs: [], det: [], gold: [] };
+            let v = { main: [], head: [], legs: [], det: [], gold: [], blue: [] };
 
-            if(isEmp) {
+            if(isEmp) { // BLACK PIECES (EMPIRE)
                 switch(type) {
-                    case 'b': // ROYAL GUARD
-                        for(let y=0; y<18; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.main.push([x,y,z]);
-                        for(let y=18; y<25; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.head.push([x,y,z]);
-                        v.det.push([0, 20, 3.2], [0, 21, 3.2], [0, 22, 3.2]);
-                        group.add(createComp(v.main, 0x990000), createComp(v.head, 0x770000), createComp(v.det, 0x000000));
+                    case 'r': // STAR DESTROYER
+                        for(let z=-12; z<=10; z++) {
+                            let w = Math.floor((10-z)/2);
+                            for(let x=-w; x<=w; x++) v.main.push([x, 5, z]);
+                        }
+                        for(let x=-3; x<=3; x++) for(let y=6; y<9; y++) for(let z=-3; z<2; z++) v.det.push([x,y,z]);
+                        group.add(createComp(v.main, 0x666666), createComp(v.det, 0x444444));
                         break;
                     case 'n': // AT-AT
                         for(let x=-4; x<=4; x++) for(let y=10; y<17; y++) for(let z=-7; z<=7; z++) v.main.push([x,y,z]);
@@ -97,12 +99,18 @@
                         group.add(createComp(v.main, 0x666666), createComp(v.legs, 0x444444));
                         const h = createComp(v.head, 0x777777); h.position.set(0, 13.5 * S, 7 * S); h.name = "atat_head"; group.add(h);
                         break;
-                    default: // VADER/KING/PAWN
-                        let c = type === 'p' ? 0xdddddd : 0x111111;
+                    case 'b': // ROYAL GUARD
                         for(let y=0; y<18; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.main.push([x,y,z]);
-                        group.add(createComp(v.main, c));
+                        for(let y=18; y<25; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.head.push([x,y,z]);
+                        v.det.push([0, 20, 3.2], [0, 21, 3.2], [0, 22, 3.2]);
+                        group.add(createComp(v.main, 0x990000), createComp(v.head, 0x770000), createComp(v.det, 0x000000));
+                        break;
+                    default: // VADER / OTHER
+                        for(let y=0; y<20; y++) for(let x=-5; x<=5; x++) for(let z=-5; z<=5; z++) v.main.push([x,y,z]);
+                        group.add(createComp(v.main, 0x111111));
                 }
-            } else {
+            } else { // WHITE PIECES (REBELS) - ROTATED 180
+                group.rotation.y = Math.PI; 
                 switch(type) {
                     case 'p': // CLONE TROOPER
                         for(let y=0; y<14; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x,y,z]);
@@ -111,22 +119,32 @@
                         for(let x=-2; x<=2; x++) v.det.push([x, 16.5, 4.1]); // Visor
                         group.add(createComp(v.main, 0xffffff), createComp(v.head, 0xffffff), createComp(v.det, 0x000000));
                         break;
-                    case 'r': // THE SPLIT
-                        if (gridX < 4) { // R2-D2 (Left Side)
+                    case 'n': // X-WING
+                        for(let x=-2; x<=2; x++) for(let y=6; y<8; y++) for(let z=-14; z<=10; z++) v.main.push([x,y,z]);
+                        const wz = -8;
+                        for(let i=1; i<14; i++) {
+                            let r = i*0.4; let s = 2+i;
+                            v.head.push([s, 7+r, wz], [-s, 7+r, wz], [s, 7-r, wz], [-s, 7-r, wz]);
+                            if(i === 13) for(let pz=-5; pz<4; pz++) v.det.push([s, 7+r, wz+pz], [-s, 7+r, wz+pz], [s, 7-r, wz+pz], [-s, 7-r, wz+pz]);
+                        }
+                        group.add(createComp(v.main, 0xeeeeee), createComp(v.head, 0xcccccc), createComp(v.det, 0xbb0000));
+                        break;
+                    case 'r': // R2-D2 / C-3PO
+                        if (gridX < 4) { // R2
                             for(let y=0; y<10; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x, y, z]);
                             for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.head.push([x, 10, z]);
-                            v.det.push([0, 11, 2.5], [1, 9, 3.1], [-1, 7, 3.1]); 
-                            group.add(createComp(v.main, 0xffffff), createComp(v.head, 0x999999), createComp(v.det, 0x0044ff));
-                        } else { // C-3PO (Right Side)
-                            for(let y=0; y<14; y++) for(let x=-2; x<=2; x++) v.gold.push([x, y, 0]); // Body
-                            for(let y=14; y<20; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v.gold.push([x, y, z]); // Head
-                            v.det.push([1, 17, 2.1], [-1, 17, 2.1]); // Eyes
+                            v.blue.push([0, 11, 2.5], [1, 9, 3.1]); 
+                            group.add(createComp(v.main, 0xffffff), createComp(v.head, 0x999999), createComp(v.blue, 0x0044ff));
+                        } else { // 3PO
+                            for(let y=0; y<14; y++) for(let x=-2; x<=2; x++) v.gold.push([x, y, 0]);
+                            for(let y=14; y<20; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v.gold.push([x, y, z]);
+                            v.det.push([1, 17, 2.1], [-1, 17, 2.1]);
                             group.add(createComp(v.gold, 0xc5a000), createComp(v.det, 0xffff00));
                         }
                         break;
-                    default: // JEDI/KING/QUEEN
+                    default:
                         for(let y=0; y<20; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.main.push([x,y,z]);
-                        group.add(createComp(v.main, 0x3d2b1f));
+                        group.add(createComp(v.main, 0xeeeeee));
                 }
             }
 
