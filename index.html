@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Star Wars: Tactical Chess</title>
+    <title>Star Wars: Iconic Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -14,8 +14,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">FLEET CALIBRATED</div>
-        <div id="sub-text">X-WING LASERS & 3PO REBUILT</div>
+        <div id="status-text">REBELS REINFORCED</div>
+        <div id="sub-text">LEIA & R2-D2 FULLY RENDERED</div>
     </div>
 
     <div class="controls">
@@ -49,7 +49,7 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             
-            const amb = new THREE.AmbientLight(0xffffff, 0.6); scene.add(amb);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
             const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(10, 20, 10); scene.add(sun);
 
             createStars();
@@ -74,7 +74,7 @@
             const group = new THREE.Group();
             const isEmp = (side === 'b');
             group.userData = { type, side, gridX, gridZ };
-            let v = { main: [], detail: [], head: [], saber: [], skin: [] };
+            let v = { main: [], detail: [], head: [], saber: [], skin: [], hair: [] };
 
             if(isEmp) { // EMPIRE
                 switch(type) {
@@ -84,31 +84,15 @@
                         for(let y=5; y<28; y++) for(let x=5; x<7; x++) v.saber.push([x, y, 2]);
                         group.add(createComp(v.main, 0x111111), createComp(v.head, 0x000000), createComp(v.saber, 0xff0000, 0x660000));
                         break;
-                    case 'q': // PALPATINE
-                        for(let y=0; y<22; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.main.push([x,y,z]);
-                        v.skin.push([0, 20, 3], [1, 20, 3], [-1, 20, 3]);
-                        group.add(createComp(v.main, 0x0a0a0a), createComp(v.skin, 0xdddddd));
-                        break;
-                    case 'r': // STAR DESTROYER (Narrowed & Bridge Moved Rear)
+                    case 'r': // STAR DESTROYER
                         for(let z=-12; z<=12; z++) {
-                            let w = Math.floor((12-z)/3); // Narrower dagger profile
+                            let w = Math.floor((12-z)/3.5);
                             for(let x=-w; x<=w; x++) for(let y=2; y<=5; y++) v.main.push([x, y, z]);
                         }
-                        // Bridge structure at the REAR
                         for(let x=-3; x<=3; x++) for(let y=6; y<=9; y++) for(let z=-8; z<=-4; z++) v.detail.push([x,y,z]);
                         group.add(createComp(v.main, 0x777777), createComp(v.detail, 0x555555));
                         break;
-                    case 'n': // AT-AT
-                        for(let x=-5; x<=5; x++) for(let y=12; y<20; y++) for(let z=-8; z<=8; z++) v.main.push([x,y,z]);
-                        [[-4,-6],[4,-6],[-4,6],[4,6]].forEach(p => { 
-                            for(let y=0; y<12; y++) for(let ix=-1; ix<=1; ix++) for(let iz=-1; iz<=1; iz++) v.main.push([p[0]+ix, y, p[1]+iz]); 
-                        });
-                        const hGroup = new THREE.Group(); hGroup.name = "atat_head";
-                        let hVox = []; for(let x=-4; x<=4; x++) for(let y=-3; y<=3; y++) for(let z=0; z<=6; z++) hVox.push([x,y,z]);
-                        const hMesh = createComp(hVox, 0x777777); hMesh.position.set(0, 16*S, 8*S); hGroup.add(hMesh);
-                        group.add(createComp(v.main, 0x666666), hGroup);
-                        break;
-                    default: // PAWN
+                    default: 
                         for(let y=0; y<15; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x,y,z]);
                         group.add(createComp(v.main, 0x111111));
                 }
@@ -121,47 +105,62 @@
                         for(let y=5; y<28; y++) for(let x=-7; x<-5; x++) v.saber.push([x, y, 0]);
                         group.add(createComp(v.main, 0x222222), createComp(v.skin, 0xffdbac), createComp(v.saber, 0x00ff00, 0x006600));
                         break;
-                    case 'q': // YODA
-                        for(let y=0; y<10; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x,y,z]);
-                        for(let y=5; y<18; y++) for(let x=5; x<7; x++) v.saber.push([x, y, 0]);
-                        group.add(createComp(v.main, 0x4f7942), createComp(v.saber, 0x00ff00, 0x004400));
-                        break;
-                    case 'n': // X-WING (Fixed Lasers & Wings)
-                        for(let x=-2; x<=2; x++) for(let y=4; y<=6; y++) for(let z=-12; z<=10; z++) v.main.push([x,y,z]); // Nose
-                        // Wings with Lasers
-                        [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(pos => {
-                            for(let i=3; i<12; i++) {
-                                v.main.push([i*pos[0], 5 + (i/3)*pos[1], -5]); // Wing structure
-                                if(i > 8) v.detail.push([i*pos[0], 5.1 + (i/3)*pos[1], -5]); // Red Squadron markings
-                                if(i === 11) { // 4 Lasers at wingtips
-                                    for(let lz=0; lz<8; lz++) v.detail.push([i*pos[0], 5 + (i/3)*pos[1], lz]);
+                    case 'b': // LEIA (FIXED)
+                        if(gridX === 2) { 
+                            // Dress / Body
+                            for(let y=0; y<18; y++) {
+                                let w = y < 5 ? 5 : 3; // Wider base for the dress
+                                for(let x=-w; x<=w; x++) for(let z=-2; z<=2; z++) v.main.push([x,y,z]);
+                            }
+                            // Head
+                            for(let y=18; y<23; y++) for(let x=-3; x<=3; x++) for(let z=-2; z<=2; z++) v.skin.push([x,y,z]);
+                            // Buns (The Iconic Look)
+                            for(let y=19; y<22; y++) {
+                                for(let iz=-1; iz<=1; iz++) {
+                                    v.hair.push([4, y, iz], [5, y, iz], [-4, y, iz], [-5, y, iz]);
                                 }
                             }
-                        });
-                        group.add(createComp(v.main, 0xdddddd), createComp(v.detail, 0xbb0000));
-                        break;
-                    case 'r': // R2 & 3PO
-                        if (gridX < 4) { // R2-D2
-                            for(let y=0; y<12; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x,y,z]);
-                            v.detail.push([1, 8, 3.1], [-1, 8, 3.1]);
-                            group.add(createComp(v.main, 0xffffff), createComp(v.detail, 0x0044ff));
-                        } else { // C-3PO (Solid rebuild)
-                            for(let y=0; y<16; y++) for(let x=-3; x<=3; x++) for(let z=-2; z<=2; z++) v.main.push([x,y,z]);
-                            for(let y=16; y<22; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v.main.push([x,y,z]); // Solid Head
-                            v.detail.push([1, 19, 2.1], [-1, 19, 2.1]); // Yellow Eyes
-                            group.add(createComp(v.main, 0xd4af37), createComp(v.detail, 0xffff00));
-                        }
-                        break;
-                    case 'b': // LEIA & CHEWIE
-                        if(gridX === 2) { // Leia
-                            for(let y=0; y<18; y++) for(let x=-3; x<=3; x++) for(let z=-2; z<=2; z++) v.main.push([x,y,z]);
-                            group.add(createComp(v.main, 0xffffff));
-                        } else { // Chewie
+                            group.add(createComp(v.main, 0xffffff), createComp(v.skin, 0xffdbac), createComp(v.hair, 0x3d2b1f));
+                        } else { // CHEWIE
                             for(let y=0; y<24; y++) for(let x=-4; x<=4; x++) for(let z=-3; z<=3; z++) v.main.push([x,y,z]);
                             group.add(createComp(v.main, 0x4b3621));
                         }
                         break;
-                    default: // CLONE PAWN
+                    case 'r': // R2-D2 (FIXED)
+                        if (gridX < 4) { 
+                            // Main Body Cylinder
+                            for(let y=3; y<11; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) {
+                                if(Math.abs(x)+Math.abs(z) < 5) v.main.push([x,y,z]);
+                            }
+                            // Dome Head
+                            for(let y=11; y<14; y++) {
+                                let r = y === 13 ? 1 : 2;
+                                for(let x=-r; x<=r; x++) for(let z=-r; z<=r; z++) v.detail.push([x,y,z]);
+                            }
+                            // Legs
+                            for(let y=0; y<10; y++) {
+                                for(let z=-1; z<=1; z++) { v.main.push([4, y, z], [-4, y, z]); }
+                            }
+                            // Blue panels & Eye
+                            v.detail.push([0, 12, 2.5], [1, 9, 2.5], [-1, 7, 2.5]);
+                            group.add(createComp(v.main, 0xeeeeee), createComp(v.detail, 0x0044ff), createComp([[0,12,2.6]], 0xff0000));
+                        } else { // C-3PO
+                            for(let y=0; y<16; y++) for(let x=-3; x<=3; x++) for(let z=-2; z<=2; z++) v.main.push([x,y,z]);
+                            for(let y=16; y<22; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v.main.push([x,y,z]); 
+                            group.add(createComp(v.main, 0xd4af37));
+                        }
+                        break;
+                    case 'n': // X-WING
+                        for(let x=-2; x<=2; x++) for(let y=4; y<=6; y++) for(let z=-12; z<=10; z++) v.main.push([x,y,z]);
+                        [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(pos => {
+                            for(let i=3; i<12; i++) {
+                                v.main.push([i*pos[0], 5 + (i/3)*pos[1], -5]); 
+                                if(i === 11) for(let lz=0; lz<8; lz++) v.detail.push([i*pos[0], 5 + (i/3)*pos[1], lz]);
+                            }
+                        });
+                        group.add(createComp(v.main, 0xdddddd), createComp(v.detail, 0xbb0000));
+                        break;
+                    default: 
                         for(let y=0; y<15; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x,y,z]);
                         group.add(createComp(v.main, 0xffffff));
                 }
@@ -222,7 +221,6 @@
             const time = Date.now()*0.002; 
             piecesGroup.children.forEach((p, i) => { 
                 p.position.y = 0.1 + Math.sin(time+i)*0.03; 
-                const h = p.getObjectByName("atat_head"); if(h) h.rotation.y = Math.sin(time*0.5+i)*0.5;
             }); 
             renderer.render(scene, camera); 
         }
