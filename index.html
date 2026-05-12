@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Rear-Wing Voxel Chess</title>
+    <title>Corrected X-Wing Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -15,8 +15,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">X-WING GEOMETRY FIXED</div>
-        <div id="sub-text">WINGS MOVED TO REAR ASSEMBLY</div>
+        <div id="status-text">REAR ASSEMBLY CALIBRATED</div>
+        <div id="sub-text">LONG-NOSE FUSELAGE DEPLOYED</div>
     </div>
 
     <div class="controls">
@@ -102,7 +102,7 @@
 
             if(isEmp) {
                 switch(type) {
-                    case 'k': // VADER (HEAVY VOLUME)
+                    case 'k': // VADER
                         for(let y=0; y<14; y++) {
                             for(let x=-4; x<=4; x++) for(let z=-3; z<0; z++) v(group, x, y, z, 0x080808); 
                             for(let x=-2.5; x<=2.5; x++) for(let z=0; z<=2.5; z++) v(group, x, y, z, vaderGrey); 
@@ -110,7 +110,7 @@
                         for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=14; y<19; y++) v(group, x, y, z, vaderGrey); 
                         for(let y=7; y<22; y++) v(group, 5.5, y, 3, saber); 
                         break;
-                    case 'p': // TROOPER (SOLID VOLUME)
+                    case 'p': // TROOPER
                         for(let y=0; y<10; y++) for(let x=-2.5; x<=2.5; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, white); 
                         for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=10; y<15; y++) v(group, x, y, z, white); 
                         for(let x=-2; x<=2; x++) v(group, x, 11, 3.6, 0x000000); 
@@ -126,28 +126,36 @@
                 }
             } else {
                 switch(type) {
-                    case 'n': // X-WING (WINGS AT BACK)
-                        // Thick Long Fuselage (Extended Nose)
-                        for(let x=-1.5; x<=1.5; x++) for(let y=3.5; y<=4.5; y++) for(let z=-12; z<=6; z++) v(group, x, y, z*dir, white); 
+                    case 'n': // X-WING (TRUE REAR WINGS)
+                        // Fuselage: Constant thickness, but long nose
+                        for(let x=-1.5; x<=1.5; x++) {
+                            for(let y=3.5; y<=4.5; y++) {
+                                for(let z=-14; z<=8; z++) v(group, x, y, z*dir, white); 
+                            }
+                        }
                         
-                        const wingZStart = -4; // Shifted wings to the REAR of the ship
+                        // Shift assembly to the absolute REAR (-10 to -14 area)
+                        const wingZ = -10; 
                         
-                        // Engine Cylinders at the REAR side
-                        const engineX = 2.5; 
-                        [[-engineX, 4.2], [engineX, 4.2], [-engineX, 3.8], [engineX, 3.8]].forEach(pos => {
+                        // Engines: Beefy and back-heavy
+                        const engineX = 2.5;
+                        [[-engineX, 4.3], [engineX, 4.3], [-engineX, 3.7], [engineX, 3.7]].forEach(pos => {
                             for(let x=pos[0]-1; x<=pos[0]+1; x++) 
                                 for(let y=pos[1]-1; y<=pos[1]+1; y++)
-                                    for(let z=wingZStart-2; z<=wingZStart+1; z++) v(group, x, y, z*dir, 0x333333);
+                                    for(let z=wingZ-3; z<=wingZ+1; z++) v(group, x, y, z*dir, 0x444444);
                         });
 
-                        // Angled Wings sprouting from the REAR assembly
-                        for(let i=1; i<11; i++) {
-                            let angle = i * 1.1; 
-                            // Wing Voxels
-                            v(group, 1.5+i, 4+angle, wingZStart*dir, white); v(group, 1.5+i, 4+angle, (wingZStart-1)*dir, white);
-                            v(group, -1.5-i, 4+angle, wingZStart*dir, white); v(group, -1.5-i, 4+angle, (wingZStart-1)*dir, white);
-                            v(group, 1.5+i, 4-angle, wingZStart*dir, white); v(group, 1.5+i, 4-angle, (wingZStart-1)*dir, white);
-                            v(group, -1.5-i, 4-angle, wingZStart*dir, white); v(group, -1.5-i, 4-angle, (wingZStart-1)*dir, white);
+                        // Wings: Sharp angles starting from the very back of the fuselage
+                        for(let i=1; i<12; i++) {
+                            let angle = i * 1.2; 
+                            // Wing panels with thickness
+                            const zOffsets = [0, -1, -2];
+                            zOffsets.forEach(zo => {
+                                v(group, 1.5+i, 4+angle, (wingZ+zo)*dir, white); // Top Right
+                                v(group, -1.5-i, 4+angle, (wingZ+zo)*dir, white); // Top Left
+                                v(group, 1.5+i, 4-angle, (wingZ+zo)*dir, white); // Bottom Right
+                                v(group, -1.5-i, 4-angle, (wingZ+zo)*dir, white); // Bottom Left
+                            });
                         }
                         break;
                     case 'k': // JEDI
