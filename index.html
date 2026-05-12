@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Star Wars: Tactical Voxel Chess</title>
+    <title>Star Wars: Iconic Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: none; }
         #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -16,8 +16,8 @@
 
     <div id="ui">
         <div class="hud">
-            <div id="status" style="font-size: 20px; letter-spacing: 3px;">TACTICAL GRID ENHANCED</div>
-            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">REBEL ALLIANCE VS GALACTIC EMPIRE</div>
+            <div id="status" style="font-size: 20px; letter-spacing: 3px;">DROID LOGISTICS ONLINE</div>
+            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">32x32 HI-RES BATTLEFIELD</div>
         </div>
     </div>
 
@@ -44,26 +44,20 @@
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
             camera.position.set(0, 10, 15);
-            
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
-            
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            
-            // BRIGHTER LIGHTING
             scene.add(new THREE.AmbientLight(0xffffff, 0.8)); 
             const light = new THREE.DirectionalLight(0xffffff, 1.2);
             light.position.set(5, 15, 10);
             scene.add(light);
-
             createStars();
             createBoard();
             scene.add(piecesGroup);
             syncPieces();
-            
             window.addEventListener('pointerdown', onPointerDown);
             animate();
         }
@@ -71,7 +65,7 @@
         function createVoxelMesh(coords, color, emissive = 0x000000) {
             if (!coords.length) return new THREE.Group();
             const geo = new THREE.BoxBufferGeometry(S, S, S);
-            const mat = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 3 });
+            const mat = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 2.5 });
             const mesh = new THREE.InstancedMesh(geo, mat, coords.length);
             const dummy = new THREE.Object3D();
             coords.forEach((c, i) => {
@@ -85,33 +79,32 @@
         function buildVoxelPiece(type, side, gridX) {
             const group = new THREE.Group();
             const isBlack = (side === 'b');
-            let data = { body: [], head: [], saber: [], special: [], legs: [] };
-
+            let data = { body: [], head: [], saber: [], special: [], legs: [], blaster: [] };
             const fill = (arr, x1, y1, z1, x2, y2, z2) => {
                 for(let x=x1; x<=x2; x++) for(let y=y1; y<=y2; y++) for(let z=z1; z<=z2; z++) arr.push([x,y,z]);
             };
 
             if (isBlack) {
                 switch(type) {
-                    case 'k': // DARTH VADER
-                        fill(data.body, -8, 0, -6, 8, 25, 4); 
-                        fill(data.head, -7, 25, -7, 7, 36, 3); 
+                    case 'k': // VADER
+                        fill(data.body, -8, 0, -6, 8, 25, 4); fill(data.head, -7, 25, -7, 7, 36, 3); 
                         fill(data.saber, 10, 5, 2, 11, 48, 3); 
                         group.add(createVoxelMesh(data.body, 0x1a1a1a), createVoxelMesh(data.head, 0x000000), createVoxelMesh(data.saber, 0xff0000, 0x880000));
                         break;
                     case 'q': // PALPATINE
-                        fill(data.body, -7, 0, -7, 7, 28, 7);
-                        fill(data.head, -5, 28, -5, 5, 36, 4); 
-                        fill(data.special, -3, 18, 7, 3, 20, 9); 
-                        group.add(createVoxelMesh(data.body, 0x111111), createVoxelMesh(data.head, 0x0a0a0a), createVoxelMesh(data.special, 0x00ffff, 0x00bbff));
+                        fill(data.body, -7, 0, -7, 7, 28, 7); fill(data.head, -5, 28, -5, 5, 36, 4); 
+                        fill(data.special, -2, 30, 4, 2, 33, 5); 
+                        group.add(createVoxelMesh(data.body, 0x111111), createVoxelMesh(data.head, 0x0a0a0a), createVoxelMesh(data.special, 0xded1b1));
                         break;
                     case 'r': // STAR DESTROYER
-                        for(let z=-22; z<=12; z++) { 
-                            let w = Math.floor((12-z)/3.5);
-                            fill(data.body, -w, 0, z, w, 4, z); 
-                        }
-                        fill(data.head, -3, 4, -12, 3, 10, -6);
+                        for(let z=-30; z<=15; z++) { let w = Math.floor((15-z)/3); fill(data.body, -w, 0, z, w, 6, z); }
+                        fill(data.head, -4, 6, -15, 4, 14, -8);
                         group.add(createVoxelMesh(data.body, 0xbbbbbb), createVoxelMesh(data.head, 0x999999));
+                        break;
+                    case 'b': // ROYAL GUARDS
+                        fill(data.body, -5, 0, -5, 5, 32, 5); fill(data.head, -4, 32, -4, 4, 38, 4);
+                        fill(data.special, 6, 0, 0, 7, 45, 1); 
+                        group.add(createVoxelMesh(data.body, 0xaa0000), createVoxelMesh(data.head, 0x880000), createVoxelMesh(data.special, 0x333333));
                         break;
                     case 'n': // AT-AT
                         fill(data.body, -8, 15, -12, 8, 25, 12);
@@ -123,66 +116,57 @@
                         group.add(createVoxelMesh(data.body, 0xaaaaaa), createVoxelMesh(data.legs, 0x777777));
                         break;
                     case 'p': // B1 DROID
-                        fill(data.body, -2, 0, -2, 2, 22, 2);
-                        fill(data.head, -2, 22, -1, 2, 28, 6);
-                        group.add(createVoxelMesh(data.body, 0xe2c4ac), createVoxelMesh(data.head, 0xd2b49c));
+                        fill(data.body, -2, 0, -2, 2, 22, 2); fill(data.head, -2, 22, -1, 2, 28, 6);
+                        fill(data.blaster, 3, 10, 0, 4, 12, 8); 
+                        group.add(createVoxelMesh(data.body, 0xe2c4ac), createVoxelMesh(data.head, 0xd2b49c), createVoxelMesh(data.blaster, 0x222222));
                         break;
-                    default: 
-                        fill(data.body, -5, 0, -4, 5, 22, 4);
-                        group.add(createVoxelMesh(data.body, 0x444444));
                 }
             } else {
                 group.rotation.y = Math.PI;
                 switch(type) {
+                    case 'q': // YODA
+                        fill(data.body, -4, 0, -4, 4, 12, 4); fill(data.head, -5, 12, -4, 5, 18, 4); 
+                        fill(data.saber, -6, 5, 4, -7, 25, 5); 
+                        group.add(createVoxelMesh(data.body, 0xded1b1), createVoxelMesh(data.head, 0x4f7942), createVoxelMesh(data.saber, 0x00ff00, 0x00aa00));
+                        break;
                     case 'n': // X-WING
                         fill(data.body, -2, 4, -15, 2, 8, 10);
-                        fill(data.special, -1, 7, -5, 1, 9, 0); 
-                        for(let i=2; i<=12; i++) {
-                            let zB = -10 + (i-2)*0.5;
-                            data.body.push([i, 6 + (i-2)*0.6, zB]);
-                            data.body.push([-i, 6 + (i-2)*0.6, zB]);
-                            data.body.push([i, 6 - (i-2)*0.6, zB]);
-                            data.body.push([-i, 6 - (i-2)*0.6, zB]);
+                        for(let i=3; i<=14; i++) {
+                            let zB = -10 + (i-3)*0.4;
+                            fill(data.special, i, 6 + (i-3)*0.8, zB, i+2, 7 + (i-3)*0.8, zB+10); 
+                            fill(data.special, -i-2, 6 + (i-3)*0.8, zB, -i, 7 + (i-3)*0.8, zB+10); 
+                            fill(data.special, i, 6 - (i-3)*0.8, zB, i+2, 7 - (i-3)*0.8, zB+10); 
+                            fill(data.special, -i-2, 6 - (i-3)*0.8, zB, -i, 7 - (i-3)*0.8, zB+10); 
                         }
-                        [ [12, 12, 0], [-12, 12, 0], [12, 0, 0], [-12, 0, 0] ].forEach(p => {
-                           fill(data.special, p[0]-1, p[1], p[2], p[0]+1, p[1]+1, p[2]+4);
-                        });
-                        group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.special, 0xff0000, 0x880000));
+                        group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.special, 0xdddddd));
+                        break;
+                    case 'r': // C-3PO (Left) and R2-D2 (Right)
+                        if (gridX === 0) { // C-3PO
+                            fill(data.body, -4, 0, -3, 4, 32, 3);
+                            group.add(createVoxelMesh(data.body, 0xffcc00));
+                        } else { // R2-D2
+                            fill(data.body, -6, 0, -6, 6, 15, 6); fill(data.head, -5, 15, -5, 5, 20, 5);
+                            group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.head, 0x0066ff));
+                        }
                         break;
                     case 'p': // CLONE COMMANDO
-                        fill(data.body, -6, 0, -5, 6, 22, 5);
-                        fill(data.head, -5, 22, -5, 5, 30, 4);
+                        fill(data.body, -6, 0, -5, 6, 22, 5); fill(data.head, -5, 22, -5, 5, 30, 4);
                         fill(data.special, -4, 26, 4, 4, 27, 5);
                         group.add(createVoxelMesh(data.body, 0xffffff), createVoxelMesh(data.head, 0xffffff), createVoxelMesh(data.special, 0x00eeff, 0x0088ff));
                         break;
                     case 'k': // LUKE
-                        fill(data.body, -6, 0, -4, 6, 25, 4);
-                        fill(data.head, -5, 25, -5, 5, 32, 5);
-                        fill(data.special, -6, 30, -6, 6, 35, 6);
+                        fill(data.body, -6, 0, -4, 6, 25, 4); fill(data.head, -5, 25, -5, 5, 32, 5);
                         fill(data.saber, -10, 5, 3, -11, 45, 4);
-                        group.add(createVoxelMesh(data.body, 0x333333), createVoxelMesh(data.head, 0xffdbac), createVoxelMesh(data.special, 0xffcc33), createVoxelMesh(data.saber, 0x00ff00, 0x00aa00));
+                        group.add(createVoxelMesh(data.body, 0x333333), createVoxelMesh(data.head, 0xffdbac), createVoxelMesh(data.saber, 0x00ff00, 0x00aa00));
                         break;
                     case 'b': // LEIA / CHEWIE
                         if (gridX === 5) { // LEIA
-                            fill(data.body, -6, 0, -6, 6, 25, 6);
-                            fill(data.head, -4, 25, -4, 4, 33, 4);
-                            fill(data.special, 4, 27, -1, 7, 31, 2);
-                            fill(data.special, -7, 27, -1, -4, 31, 2);
+                            fill(data.body, -6, 0, -6, 6, 25, 6); fill(data.head, -4, 25, -4, 4, 33, 4);
+                            fill(data.special, 4, 27, -1, 7, 31, 2); fill(data.special, -7, 27, -1, -4, 31, 2);
                             group.add(createVoxelMesh(data.body, 0xffffff), createVoxelMesh(data.head, 0xffdbac), createVoxelMesh(data.special, 0x5d3b2f));
                         } else { // CHEWIE
-                            fill(data.body, -7, 0, -6, 7, 48, 6);
-                            fill(data.special, -8, 15, -7, 8, 18, 7);
+                            fill(data.body, -7, 0, -6, 7, 48, 6); fill(data.special, -8, 15, -7, 8, 18, 7);
                             group.add(createVoxelMesh(data.body, 0x5b4631), createVoxelMesh(data.special, 0xdddddd));
-                        }
-                        break;
-                    case 'r': // R2-D2 / C-3PO
-                        if (gridX === 0 || gridX === 7) {
-                            fill(data.body, -6, 0, -6, 6, 15, 6);
-                            fill(data.head, -5, 15, -5, 5, 20, 5);
-                            group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.head, 0x0066ff));
-                        } else {
-                            fill(data.body, -4, 0, -3, 4, 32, 3);
-                            group.add(createVoxelMesh(data.body, 0xffcc00));
                         }
                         break;
                 }
@@ -202,10 +186,8 @@
                         let m = piecesGroup.children.find(ch => ch.userData.id === id);
                         if(!m) {
                             m = buildVoxelPiece(p.type, p.color, c);
-                            m.userData.id = id;
-                            m.position.set(c-3.5, 0, r-3.5);
-                            piecesGroup.add(m);
-                            m.scale.set(0,0,0);
+                            m.userData.id = id; m.position.set(c-3.5, 0, r-3.5);
+                            piecesGroup.add(m); m.scale.set(0,0,0);
                             new TWEEN.Tween(m.scale).to({x:1, y:1, z:1}, 500).easing(TWEEN.Easing.Back.Out).start();
                         } else {
                             new TWEEN.Tween(m.position).to({x: c-3.5, z: r-3.5}, 600).easing(TWEEN.Easing.Quadratic.InOut).start();
@@ -223,8 +205,7 @@
         }
 
         function createStars() {
-            const geo = new THREE.BufferGeometry();
-            const pts = [];
+            const geo = new THREE.BufferGeometry(); const pts = [];
             for(let i=0; i<5000; i++) pts.push((Math.random()-0.5)*500, (Math.random()-0.5)*500, (Math.random()-0.5)*500);
             geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
             scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.15})));
@@ -232,7 +213,6 @@
 
         function createBoard() {
             for (let x=0; x<8; x++) for (let z=0; z<8; z++) {
-                // BRIGHTER BOARD COLORS
                 const color = (x+z)%2 ? 0x001a33 : 0x003366;
                 const sq = new THREE.Mesh(new THREE.BoxBufferGeometry(0.98, 0.15, 0.98), 
                     new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.9 }));
@@ -251,8 +231,7 @@
                 if(!selectedSquare) {
                     const p = game.get(coord);
                     if(p && p.color === game.turn()) {
-                        selectedSquare = coord;
-                        bh.material.emissive.setHex(0x00eeff);
+                        selectedSquare = coord; bh.material.emissive.setHex(0x00eeff);
                     }
                 } else {
                     if(game.move({ from: selectedSquare, to: coord, promotion: 'q' })) {
@@ -263,8 +242,7 @@
                             if(moves.length) { game.move(moves[Math.floor(Math.random()*moves.length)]); syncPieces(); }
                         }, 600);
                     }
-                    selectedSquare = null;
-                    boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
+                    selectedSquare = null; boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
                 }
             }
         }
@@ -272,9 +250,7 @@
         function setMode(m) { isAiMode = (m === 'ai'); game.reset(); syncPieces(); }
 
         function animate(t) { 
-            requestAnimationFrame(animate); 
-            TWEEN.update(t);
-            controls.update(); 
+            requestAnimationFrame(animate); TWEEN.update(t); controls.update(); 
             const time = Date.now()*0.002;
             piecesGroup.children.forEach((p) => {
                 p.position.y = 0.05 + Math.sin(time + p.position.x)*0.01;
