@@ -3,26 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hi-Res Voxel Star Wars</title>
+    <title>Ultra-Voxel Star Wars</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
         .controls { position: absolute; bottom: 20px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px; box-sizing: border-box; z-index: 10; }
-        button { padding: 15px 5px; background: rgba(0, 20, 40, 0.9); color: #00eeff; border: 1px solid #00eeff; font-weight: bold; border-radius: 4px; pointer-events: auto; }
-        #status-text { font-size: 1.4em; text-shadow: 0 0 10px #00eeff; }
+        button { padding: 16px 5px; background: rgba(0, 15, 30, 0.9); color: #00eeff; border: 1px solid #00eeff; font-weight: bold; border-radius: 4px; pointer-events: auto; text-transform: uppercase; letter-spacing: 1px; }
+        button:active { background: #00eeff; color: #000; }
+        #status-text { font-size: 1.4em; text-shadow: 0 0 10px #00eeff; margin-bottom: 2px; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <div id="status-text">HI-RES VOXELS LOADED</div>
-        <div id="sub-text">TAP TO DEPLOY UNITS</div>
+        <div id="status-text">SUB-VOXEL SCAN COMPLETE</div>
+        <div id="sub-text">ENHANCED DETAIL ACTIVE</div>
     </div>
 
     <div class="controls">
-        <button onclick="setMode('pvp')">2 PLAYER</button>
-        <button onclick="setMode('ai')">VS AI</button>
-        <button onclick="resetGame()" style="grid-column: span 2;">RESET GRID</button>
+        <button onclick="setMode('pvp')">Local Ops</button>
+        <button onclick="setMode('ai')">Imperial AI</button>
+        <button onclick="resetGame()" style="grid-column: span 2; opacity: 0.6;">System Reboot</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -36,16 +37,16 @@
         let piecesGroup = new THREE.Group();
         let boardSquares = [];
 
-        // PIXEL SCALE - This is the "scale down" factor
-        const S = 0.08; 
+        // ULTRA SCALE: Very small blocks for high-res building
+        const SCALE = 0.045; 
 
         function init() {
             game = new Chess();
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x010103);
+            scene.background = new THREE.Color(0x010102);
 
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 15, 12);
+            camera.position.set(0, 14, 10);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -55,10 +56,10 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-            const sun = new THREE.DirectionalLight(0xffffff, 1);
-            sun.position.set(5, 10, 5);
-            scene.add(sun);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const light = new THREE.DirectionalLight(0xffffff, 1.2);
+            light.position.set(10, 20, 10);
+            scene.add(light);
 
             createStars();
             createBoard();
@@ -71,7 +72,7 @@
 
         function createStars() {
             const coords = [];
-            for(let i=0; i<1000; i++) coords.push((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
+            for(let i=0; i<1200; i++) coords.push((Math.random()-0.5)*120, (Math.random()-0.5)*120, (Math.random()-0.5)*120);
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
             scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.1})));
@@ -82,10 +83,10 @@
                 for (let z = 0; z < 8; z++) {
                     const isBlack = (x + z) % 2 !== 0;
                     const sq = new THREE.Mesh(
-                        new THREE.BoxGeometry(0.98, 0.2, 0.98),
-                        new THREE.MeshPhongMaterial({ color: isBlack ? 0x050505 : 0x111111 })
+                        new THREE.BoxGeometry(0.98, 0.15, 0.98),
+                        new THREE.MeshPhongMaterial({ color: isBlack ? 0x080808 : 0x151515 })
                     );
-                    sq.position.set(x - 3.5, -0.1, z - 3.5);
+                    sq.position.set(x - 3.5, -0.075, z - 3.5);
                     sq.userData = { x, z };
                     scene.add(sq);
                     boardSquares.push(sq);
@@ -93,62 +94,66 @@
             }
         }
 
-        function addPixel(group, x, y, z, color) {
-            const b = new THREE.Mesh(new THREE.BoxGeometry(S, S, S), new THREE.MeshLambertMaterial({color}));
-            b.position.set(x * S, y * S, z * S);
+        function v(group, x, y, z, color) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(SCALE, SCALE, SCALE), new THREE.MeshLambertMaterial({color}));
+            b.position.set(x * SCALE, y * SCALE, z * SCALE);
             group.add(b);
         }
 
-        function buildDetailedPiece(type, side, gridX, gridZ) {
+        function buildUltraPiece(type, side, gridX, gridZ) {
             const group = new THREE.Group();
             const isEmp = (side === 'b');
-            const mainC = isEmp ? 0x222222 : 0xdddddd;
-            const glowC = isEmp ? 0xff0000 : 0x00ffcc;
+            const empC = 0x222222;
+            const jediC = 0xdddddd;
+            const saberC = isEmp ? 0xff0000 : 0x00ffaa;
 
             if(isEmp) {
                 switch(type) {
-                    case 'k': // VADER (High Detail Helmet & Cape)
-                        for(let y=0; y<10; y++) {
-                            for(let x=-2; x<=2; x++) addPixel(group, x, y, -1, 0x000000); // Cape
-                            addPixel(group, 0, y, 0, 0x000000); // Body
+                    case 'k': // VADER
+                        for(let y=0; y<15; y++) {
+                            for(let x=-4; x<=4; x++) v(group, x, y, -2, 0x000000); // Flared Cape
+                            for(let x=-1; x<=1; x++) v(group, x, y, 0, 0x000000); // Body
                         }
-                        // Helmet shape
-                        for(let x=-1; x<=1; x++) for(let z=-1; z<=1; z++) addPixel(group, x, 10, z, 0x000000);
-                        for(let y=5; y<12; y++) addPixel(group, 2, y, 0, glowC); // Saber
+                        for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) for(let y=15; y<19; y++) v(group, x, y, z, 0x000000); // Mask
+                        for(let y=8; y<22; y++) v(group, 4, y, 1, saberC); // Red Saber
                         break;
-                    case 'n': // STAR DESTROYER (Tiered Bridge)
-                        for(let z=-4; z<=4; z++) for(let x=-Math.floor((z+4)/1.5); x<=Math.floor((z+4)/1.5); x++) addPixel(group, x, 2, z, 0x444444);
-                        for(let y=3; y<5; y++) for(let x=-1; x<=1; x++) addPixel(group, x, y, -2, 0x444444); // Bridge
+                    case 'n': // STAR DESTROYER
+                        for(let z=-8; z<=8; z++) {
+                            let w = Math.floor((z + 8) / 1.5);
+                            for(let x=-w; x<=w; x++) v(group, x, 3, z, 0x444444);
+                        }
+                        for(let y=4; y<7; y++) for(let x=-2; x<=2; x++) v(group, x, y, -2, 0x444444); // Command Bridge
                         break;
-                    case 'p': // TROOPER (Better Helmet)
-                        for(let y=0; y<6; y++) addPixel(group, 0, y, 0, 0x111111);
-                        for(let x=-1; x<=1; x++) for(let z=-1; z<=1; z++) addPixel(group, x, 6, z, 0xffffff);
+                    case 'r': // AT-AT
+                        for(let x=-3; x<=3; x+=6) for(let z=-4; z<=4; z+=8) for(let y=0; y<10; y++) v(group, x, y, z, 0x555555); // Legs
+                        for(let x=-4; x<=4; x++) for(let z=-7; z<=7; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0x555555); // Body
+                        for(let y=11; y<14; y++) for(let x=-2; x<=2; x++) for(let z=7; z<11; z++) v(group, x, y, z, 0x555555); // Head
                         break;
-                    default: // AT-AT
-                        for(let x=-2; x<=2; x+=4) for(let z=-2; z<=2; z+=4) for(let y=0; y<6; y++) addPixel(group, x, y, z, 0x555555);
-                        for(let x=-2; x<=2; x++) for(let z=-4; z<=4; z++) addPixel(group, x, 6, z, 0x555555);
+                    case 'p': // TROOPER
+                        for(let y=0; y<10; y++) v(group, 0, y, 0, 0x111111);
+                        for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xffffff); // Detailed Helmet
                         break;
+                    default: 
+                        for(let y=0; y<18; y++) v(group, 0, y, 0, empC); break;
                 }
             } else {
                 switch(type) {
-                    case 'k': // JEDI (Detailed Robe/Saber)
-                        for(let y=0; y<10; y++) for(let x=-1; x<=1; x++) for(let z=-1; z<=1; z++) addPixel(group, x, y, z, 0x4a3728);
-                        for(let y=5; y<13; y++) addPixel(group, 2, y, 0, glowC); // Green Saber
+                    case 'k': // JEDI MASTER
+                        for(let y=0; y<15; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, 0x4a3728); // Robes
+                        for(let y=8; y<24; y++) v(group, 4, y, 0, saberC); // Green Saber
                         break;
-                    case 'n': // X-WING (Detailed Wings/Nose)
-                        for(let z=-6; z<=4; z++) addPixel(group, 0, 3, z, 0xcccccc); // Nose
-                        for(let i=-3; i<=3; i+=6) {
-                            addPixel(group, i, 2, -2, 0xcccccc); addPixel(group, i, 4, -2, 0xcccccc); // Wings
+                    case 'n': // X-WING
+                        for(let z=-10; z<=8; z++) v(group, 0, 4, z, jediC); // Long Nose
+                        for(let i=-6; i<=6; i+=12) {
+                            for(let z=-4; z<2; z++) { v(group, i/2, 2, z, jediC); v(group, i/2, 6, z, jediC); } // Wings
                         }
                         break;
                     case 'p': // REBEL
-                        for(let y=0; y<5; y++) addPixel(group, 0, y, 0, 0x335533);
-                        for(let x=-1; x<=1; x++) addPixel(group, x, 5, 0, 0xddccbb);
+                        for(let y=0; y<10; y++) v(group, 0, y, 0, 0x335533);
+                        for(let x=-2; x<=2; x++) v(group, x, 10, 0, 0xddccbb); // Helmet
                         break;
-                    default: // FALCON
-                        for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) if(x*x + z*z < 16) addPixel(group, x, 2, z, 0xcccccc);
-                        addPixel(group, 4, 3, 0, 0x999999);
-                        break;
+                    default: // GUARDIAN
+                        for(let y=0; y<15; y++) v(group, 0, y, 0, jediC); break;
                 }
             }
 
@@ -156,11 +161,10 @@
             piecesGroup.add(group);
         }
 
-        // Logic functions remain standard for compatibility...
         function renderPieces() {
             while(piecesGroup.children.length > 0) piecesGroup.remove(piecesGroup.children[0]);
             const state = game.board();
-            for(let r=0; r<8; r++) for(let c=0; c<8; c++) if(state[r][c]) buildDetailedPiece(state[r][c].type, state[r][c].color, c, r);
+            for(let r=0; r<8; r++) for(let c=0; c<8; c++) if(state[r][c]) buildUltraPiece(state[r][c].type, state[r][c].color, c, r);
         }
 
         function onPointerDown(event) {
@@ -196,7 +200,8 @@
         }
 
         function updateUI() {
-            document.getElementById('status-text').innerText = game.game_over() ? "OVER" : game.turn().toUpperCase() + " TURN";
+            let t = game.turn() === 'w' ? "REBEL" : "EMPIRE";
+            document.getElementById('status-text').innerText = game.game_over() ? "VICTORY" : t + " TURN";
         }
         function setMode(m) { isAiMode = (m === 'ai'); resetGame(); }
         function resetGame() { game.reset(); renderPieces(); updateUI(); selectedSquare = null; }
@@ -207,6 +212,7 @@
             renderer.render(scene, camera);
         }
         window.onload = init;
+        window.onresize = () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); };
     </script>
 </body>
 </html>
