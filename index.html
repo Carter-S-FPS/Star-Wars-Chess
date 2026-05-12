@@ -3,36 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Star Wars: Tactical Hologram Chess</title>
+    <title>Star Wars: 32-Bit Micro-Voxel Chess</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: none; }
-        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; text-transform: uppercase; }
-        .status { font-size: 24px; font-weight: bold; text-shadow: 0 0 15px #00eeff; margin-bottom: 5px; }
-        .sub-text { font-size: 12px; letter-spacing: 4px; color: #00aaff; }
-        
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
+        .hud { display: inline-block; padding: 10px 30px; border: 2px solid #00eeff; background: rgba(0,10,20,0.8); box-shadow: 0 0 20px rgba(0,238,255,0.4); text-transform: uppercase; letter-spacing: 3px; }
         .controls { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 10; }
-        button { 
-            padding: 12px 24px; background: rgba(0, 40, 80, 0.4); color: #00eeff; 
-            border: 1px solid #00eeff; border-radius: 0px; cursor: pointer; 
-            transition: all 0.3s; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
-            font-weight: bold; text-transform: uppercase;
-        }
-        button:hover { background: #00eeff; color: #000; box-shadow: 0 0 20px #00eeff; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-            background: radial-gradient(circle, transparent 60%, rgba(0, 20, 40, 0.4) 100%);
-            border: 20px solid rgba(0, 238, 255, 0.05); box-sizing: border-box; }
+        button { padding: 12px 24px; background: transparent; color: #00eeff; border: 1px solid #00eeff; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #00eeff; color: #000; box-shadow: 0 0 15px #00eeff; }
     </style>
 </head>
 <body>
 
-    <div id="overlay"></div>
     <div id="ui">
-        <div id="turn-indicator" class="status">Initializing Uplink...</div>
-        <div class="sub-text">Holographic Tactical Interface</div>
+        <div class="hud">
+            <div id="status" style="font-size: 18px;">Tactical Link Established</div>
+            <div id="turn" style="font-size: 10px; opacity: 0.7; margin-top: 5px;">32x32 High-Res Resolution Active</div>
+        </div>
     </div>
 
     <div class="controls">
-        <button onclick="setMode('pvp')">Local Command</button>
+        <button onclick="setMode('pvp')">Local Ops</button>
         <button onclick="setMode('ai')">Imperial AI</button>
     </div>
 
@@ -45,244 +36,226 @@
         let scene, camera, renderer, controls, game;
         let selectedSquare = null;
         let isAiMode = false;
-        let piecesMap = new Map(); // Track meshes by square
+        let piecesGroup = new THREE.Group();
         let boardSquares = [];
-        const S = 0.02; 
+        const S = 0.008; // Ultra-fine voxel scale for 32x32 density
 
         function init() {
             game = new Chess();
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x000a15, 0.05);
-
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 8, 10);
+            scene.background = new THREE.Color(0x010205);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 15);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
             
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            controls.maxPolarAngle = Math.PI / 2.1;
+            
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const sun = new THREE.DirectionalLight(0xffffff, 1);
+            sun.position.set(5, 15, 7);
+            scene.add(sun);
 
-            const amb = new THREE.AmbientLight(0x4040ff, 0.5); scene.add(amb);
-            const hemi = new THREE.HemisphereLight(0x00eeff, 0xff00ff, 0.6); scene.add(hemi);
-
-            createSpace();
-            createHoloBoard();
-            syncBoard();
+            createStars();
+            createBoard();
+            scene.add(piecesGroup);
+            syncPieces();
             
             window.addEventListener('pointerdown', onPointerDown);
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth/window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
             animate();
-            updateUI();
         }
 
-        function createSpace() {
-            const starGeo = new THREE.BufferGeometry();
-            const starPos = [];
-            for(let i=0; i<3000; i++) starPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-            scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0x00eeff, size: 0.05})));
+        // Optimized High-Density Voxel Generator
+        function createVoxelCluster(coords, color, emissive = 0x000000) {
+            if (!coords.length) return new THREE.Group();
+            const geo = new THREE.BoxBufferGeometry(S, S, S);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: color, 
+                emissive: emissive, 
+                emissiveIntensity: emissive !== 0 ? 3 : 0 
+            });
+            const mesh = new THREE.InstancedMesh(geo, mat, coords.length);
+            const dummy = new THREE.Object3D();
+            coords.forEach((c, i) => { 
+                dummy.position.set(c[0]*S, c[1]*S, c[2]*S); 
+                dummy.updateMatrix(); 
+                mesh.setMatrixAt(i, dummy.matrix); 
+            });
+            return mesh;
         }
 
-        function createHoloBoard() {
+        function buildHighResPiece(type, side, gridX) {
             const group = new THREE.Group();
-            for (let x=0; x<8; x++) {
-                for (let z=0; z<8; z++) {
-                    const isB = (x+z)%2!==0;
-                    const geo = new THREE.BoxBufferGeometry(0.95, 0.05, 0.95);
-                    const mat = new THREE.MeshPhongMaterial({ 
-                        color: isB ? 0x001122 : 0x003344, 
-                        transparent: true, 
-                        opacity: 0.6,
-                        emissive: isB ? 0x000000 : 0x001122
-                    });
-                    const sq = new THREE.Mesh(geo, mat);
-                    sq.position.set(x-3.5, 0, z-3.5);
-                    sq.userData = { x, z, baseColor: mat.color.getHex() };
-                    scene.add(sq);
-                    boardSquares.push(sq);
+            const isBlack = (side === 'b');
+            let data = { body: [], head: [], saber: [], accents: [] };
+
+            // Logic for 32x32 Resolution (Relative coords)
+            const fillBox = (arr, x1, y1, z1, x2, y2, z2) => {
+                for(let x=x1; x<=x2; x++) for(let y=y1; y<=y2; y++) for(let z=z1; z<=z2; z++) arr.push([x,y,z]);
+            };
+
+            if(isBlack) {
+                switch(type) {
+                    case 'k': // DARTH VADER
+                        fillBox(data.body, -8, 0, -4, 8, 28, 4); // Massive Cape/Body
+                        fillBox(data.head, -6, 28, -6, 6, 38, 4); // Helmet 32-range
+                        fillBox(data.saber, 10, 5, 2, 11, 45, 3); // Red Blade
+                        group.add(createVoxelCluster(data.body, 0x111111), createVoxelCluster(data.head, 0x000000), createVoxelCluster(data.saber, 0xff0000, 0x550000));
+                        break;
+                    case 'q': // PALPATINE
+                        fillBox(data.body, -7, 0, -7, 7, 30, 7); // Hooded Cloak
+                        fillBox(data.accents, -2, 22, 7, 2, 24, 8); // Clasp
+                        group.add(createVoxelCluster(data.body, 0x080808), createVoxelCluster(data.accents, 0x333333));
+                        break;
+                    case 'r': // STAR DESTROYER
+                        for(let z=-16; z<=16; z++) {
+                            let w = Math.floor((16-z)/1.2);
+                            fillBox(data.body, -w, 0, z, w, 4, z);
+                        }
+                        fillBox(data.head, -4, 4, -8, 4, 10, -2); // Bridge
+                        group.add(createVoxelCluster(data.body, 0x999999), createVoxelCluster(data.head, 0x777777));
+                        break;
+                    default: // STORMTROOPER
+                        fillBox(data.body, -5, 0, -4, 5, 20, 4);
+                        fillBox(data.head, -5, 20, -5, 5, 30, 5);
+                        group.add(createVoxelCluster(data.body, 0xdddddd), createVoxelCluster(data.head, 0xffffff));
+                }
+            } else {
+                group.rotation.y = Math.PI;
+                switch(type) {
+                    case 'k': // LUKE SKYWALKER
+                        fillBox(data.body, -6, 0, -4, 6, 25, 4);
+                        fillBox(data.head, -5, 25, -5, 5, 35, 5); // Head
+                        fillBox(data.accents, -5, 32, -5, 5, 36, 5); // Hair (Blonde)
+                        fillBox(data.saber, -9, 8, 2, -10, 48, 3); // Green Blade
+                        group.add(createVoxelCluster(data.body, 0x222222), createVoxelCluster(data.head, 0xffdbac), createVoxelCluster(data.accents, 0xd4af37), createVoxelCluster(data.saber, 0x00ff00, 0x004400));
+                        break;
+                    case 'b': // CHEWBACCA / LEIA
+                        if(gridX === 2 || gridX === 5) { // CHEWIE (Tall)
+                            fillBox(data.body, -7, 0, -6, 7, 45, 6);
+                            fillBox(data.accents, -8, 10, -7, 8, 12, 7); // Bandolier
+                            group.add(createVoxelCluster(data.body, 0x4b3621), createVoxelCluster(data.accents, 0xcccccc));
+                        } else { // LEIA
+                            fillBox(data.body, -6, 0, -6, 6, 25, 6);
+                            fillBox(data.head, -4, 25, -4, 4, 33, 4);
+                            fillBox(data.accents, 5, 26, -2, 8, 32, 2); // Bun R
+                            fillBox(data.accents, -8, 26, -2, -5, 32, 2); // Bun L
+                            group.add(createVoxelCluster(data.body, 0xffffff), createVoxelCluster(data.accents, 0x3d2b1f));
+                        }
+                        break;
+                    case 'r': // R2-D2 / C-3PO
+                        if(gridX === 0 || gridX === 7) { // R2
+                            fillBox(data.body, -6, 0, -6, 6, 15, 6); // Canister
+                            fillBox(data.head, -5, 15, -5, 5, 20, 5); // Dome
+                            group.add(createVoxelCluster(data.body, 0xeeeeee), createVoxelCluster(data.head, 0x0044ff, 0x002288));
+                        } else { // 3PO
+                            fillBox(data.body, -4, 0, -3, 4, 30, 3);
+                            group.add(createVoxelCluster(data.body, 0xd4af37, 0x443300));
+                        }
+                        break;
+                    default: // REBEL
+                        fillBox(data.body, -5, 0, -4, 5, 22, 4);
+                        group.add(createVoxelCluster(data.body, 0x667788));
                 }
             }
-            // Add a decorative grid frame
-            const frameGeo = new THREE.BoxBufferGeometry(8.5, 0.1, 8.5);
-            const frameMat = new THREE.MeshPhongMaterial({ color: 0x00eeff, wireframe: true, transparent: true, opacity: 0.2 });
-            const frame = new THREE.Mesh(frameGeo, frameMat);
-            frame.position.y = -0.1;
-            scene.add(frame);
-        }
-
-        function buildVoxelPiece(type, side, x, z) {
-            const group = new THREE.Group();
-            const color = (side === 'w') ? 0x00eeff : 0xff3300;
-            const emissive = (side === 'w') ? 0x004488 : 0x440000;
-
-            // Simplified procedural voxel generators for higher performance/cleaner look
-            let h = 1;
-            if(type === 'p') h = 1.2;
-            if(type === 'r') h = 1.8;
-            if(type === 'n') h = 2.2;
-            if(type === 'b') h = 2.4;
-            if(type === 'q') h = 2.8;
-            if(type === 'k') h = 3.0;
-
-            const bodyGeo = new THREE.BoxBufferGeometry(0.4, h * 0.4, 0.4);
-            const bodyMat = new THREE.MeshPhongMaterial({ 
-                color: color, 
-                wireframe: true, 
-                transparent: true, 
-                opacity: 0.8,
-                emissive: emissive
-            });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = (h * 0.4) / 2;
-            group.add(body);
-
-            // Add "Core"
-            const core = new THREE.Mesh(
-                new THREE.BoxBufferGeometry(0.1, h * 0.35, 0.1),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
-            );
-            core.position.y = body.position.y;
-            group.add(core);
-
-            group.position.set(x - 3.5, 0, z - 3.5);
             return group;
         }
 
-        function syncBoard() {
+        function syncPieces() {
             const board = game.board();
-            const currentKeys = new Set();
-
+            const currentIds = [];
             for(let r=0; r<8; r++) {
                 for(let c=0; c<8; c++) {
-                    const piece = board[r][c];
-                    if(piece) {
-                        const key = `${r}-${c}-${piece.type}-${piece.color}`;
-                        currentKeys.add(key);
-                        
-                        if(!piecesMap.has(key)) {
-                            const mesh = buildVoxelPiece(piece.type, piece.color, c, r);
-                            scene.add(mesh);
-                            piecesMap.set(key, { mesh, r, c });
-                            // Spawn animation
-                            mesh.scale.set(0,0,0);
-                            new TWEEN.Tween(mesh.scale).to({x:1, y:1, z:1}, 500).easing(TWEEN.Easing.Back.Out).start();
+                    const p = board[r][c];
+                    if(p) {
+                        const id = `${p.type}-${p.color}-${c}-${r}`;
+                        currentIds.push(id);
+                        let m = piecesGroup.children.find(ch => ch.userData.id === id);
+                        if(!m) {
+                            m = buildHighResPiece(p.type, p.color, c);
+                            m.userData.id = id;
+                            m.position.set(c-3.5, 0, r-3.5);
+                            piecesGroup.add(m);
+                            m.scale.set(0,0,0);
+                            new TWEEN.Tween(m.scale).to({x:1, y:1, z:1}, 500).easing(TWEEN.Easing.Back.Out).start();
+                        } else {
+                            new TWEEN.Tween(m.position).to({x: c-3.5, z: r-3.5}, 600).easing(TWEEN.Easing.Quadratic.InOut).start();
                         }
                     }
                 }
             }
-
-            // Remove taken pieces
-            for (const [key, val] of piecesMap.entries()) {
-                if (!currentKeys.has(key)) {
-                    new TWEEN.Tween(val.mesh.scale).to({x:0, y:0, z:0}, 300).onComplete(() => {
-                        scene.remove(val.mesh);
-                    }).start();
-                    piecesMap.delete(key);
+            piecesGroup.children = piecesGroup.children.filter(ch => {
+                if(!currentIds.includes(ch.userData.id)) {
+                    new TWEEN.Tween(ch.scale).to({x:0, y:0, z:0}, 300).onComplete(() => piecesGroup.remove(ch)).start();
+                    return false;
                 }
+                return true;
+            });
+        }
+
+        function createStars() {
+            const geo = new THREE.BufferGeometry();
+            const pts = [];
+            for(let i=0; i<5000; i++) pts.push((Math.random()-0.5)*600, (Math.random()-0.5)*600, (Math.random()-0.5)*600);
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0x00eeff, size: 0.15})));
+        }
+
+        function createBoard() {
+            for (let x=0; x<8; x++) for (let z=0; z<8; z++) {
+                const isB = (x+z)%2;
+                const sq = new THREE.Mesh(new THREE.BoxBufferGeometry(0.98, 0.1, 0.98), 
+                    new THREE.MeshPhongMaterial({ color: isB ? 0x000a15 : 0x001530, transparent: true, opacity: 0.8 }));
+                sq.position.set(x-3.5, -0.05, z-3.5); sq.userData = { x, z };
+                scene.add(sq); boardSquares.push(sq);
             }
         }
 
-        function onPointerDown(event) {
+        function onPointerDown(e) {
             const rect = renderer.domElement.getBoundingClientRect();
-            const m = new THREE.Vector2(((event.clientX-rect.left)/rect.width)*2-1, -((event.clientY-rect.top)/rect.height)*2+1);
+            const m = new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
             const ray = new THREE.Raycaster(); ray.setFromCamera(m, camera);
             const hits = ray.intersectObjects(boardSquares);
-
             if(hits.length > 0) {
-                const bh = hits[0].object; 
-                const coord = String.fromCharCode(97+bh.userData.x)+(8-bh.userData.z);
-                
+                const bh = hits[0].object; const coord = String.fromCharCode(97+bh.userData.x)+(8-bh.userData.z);
                 if(!selectedSquare) {
                     const p = game.get(coord);
                     if(p && p.color === game.turn()) {
                         selectedSquare = coord;
-                        highlightSquare(bh, 0x00eeff);
+                        bh.material.emissive.setHex(0x00eeff);
                     }
                 } else {
-                    const move = game.move({ from: selectedSquare, to: coord, promotion: 'q' });
-                    clearHighlights();
-                    if(move) {
-                        syncBoard();
-                        updateUI();
-                        if(isAiMode && !game.game_over()) setTimeout(aiMove, 800);
+                    if(game.move({ from: selectedSquare, to: coord, promotion: 'q' })) {
+                        syncPieces();
+                        document.getElementById('status').innerText = game.turn() === 'w' ? "Rebel Move" : "Empire Move";
+                        if(isAiMode) setTimeout(() => {
+                            const moves = game.moves();
+                            if(moves.length) { game.move(moves[Math.floor(Math.random()*moves.length)]); syncPieces(); }
+                        }, 600);
                     }
                     selectedSquare = null;
+                    boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
                 }
             }
         }
 
-        function highlightSquare(obj, col) {
-            obj.material.emissive.setHex(col);
-            obj.material.opacity = 1;
-        }
+        function setMode(m) { isAiMode = (m === 'ai'); game.reset(); syncPieces(); }
 
-        function clearHighlights() {
-            boardSquares.forEach(s => {
-                s.material.emissive.setHex(0x000000);
-                s.material.opacity = 0.6;
+        function animate(t) { 
+            requestAnimationFrame(animate); 
+            TWEEN.update(t);
+            controls.update(); 
+            const pulse = Date.now()*0.002;
+            piecesGroup.children.forEach((p, i) => {
+                p.position.y = 0.05 + Math.sin(pulse + i)*0.03;
             });
+            renderer.render(scene, camera); 
         }
-
-        function aiMove() {
-            const moves = game.moves();
-            if(moves.length > 0) {
-                game.move(moves[Math.floor(Math.random()*moves.length)]);
-                syncBoard();
-                updateUI();
-            }
-        }
-
-        function updateUI() {
-            const el = document.getElementById('turn-indicator');
-            if(game.game_over()) {
-                el.innerText = "COMMAND OVERRIDDEN";
-                el.style.color = "#ff0000";
-            } else {
-                el.innerText = game.turn() === 'w' ? "REBEL TURN" : "EMPIRE TURN";
-                el.style.color = game.turn() === 'w' ? "#00eeff" : "#ff3300";
-            }
-        }
-
-        function setMode(m) { 
-            isAiMode = (m === 'ai'); 
-            game.reset(); 
-            // Clear existing meshes
-            piecesMap.forEach(v => scene.remove(v.mesh));
-            piecesMap.clear();
-            syncBoard(); 
-            updateUI();
-        }
-
-        function animate(time) {
-            requestAnimationFrame(animate);
-            TWEEN.update(time);
-            controls.update();
-            
-            // Hover effect for pieces
-            const t = Date.now() * 0.002;
-            piecesMap.forEach((v, key) => {
-                v.mesh.position.y = Math.sin(t + (v.r * v.c)) * 0.1 + 0.1;
-                v.mesh.rotation.y += 0.01;
-            });
-
-            // Pulse the board
-            boardSquares.forEach(s => {
-                if(s.material.emissive.getHex() === 0) {
-                   s.material.opacity = 0.4 + Math.sin(t * 0.5) * 0.1;
-                }
-            });
-
-            renderer.render(scene, camera);
-        }
-
         window.onload = init;
     </script>
 </body>
