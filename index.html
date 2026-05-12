@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Modern Voxel Star Wars Chess</title>
+    <title>Split Droid Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
         .controls { position: absolute; bottom: 20px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px; box-sizing: border-box; z-index: 10; }
         button { padding: 16px 5px; background: rgba(0, 15, 30, 0.9); color: #00eeff; border: 1px solid #00eeff; font-weight: bold; border-radius: 4px; pointer-events: auto; }
-        #status-text { font-size: 1.2em; text-shadow: 0 0 10px #00eeff; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <div id="status-text">BUFFER GEOMETRY INITIALIZED</div>
-        <div id="sub-text">AT-AT TRACKING: ONLINE</div>
+        <div id="status-text">DROID DIVISION COMPLETE</div>
+        <div id="sub-text">R2-D2 (LEFT) | C-3PO (RIGHT)</div>
     </div>
 
     <div class="controls">
@@ -41,18 +40,14 @@
             game = new Chess();
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x010108);
-            
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 10, 10);
-            
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
-            
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            
             scene.add(new THREE.AmbientLight(0xffffff, 0.7));
             const sun = new THREE.DirectionalLight(0xffffff, 1.2);
             sun.position.set(5, 15, 5);
@@ -62,104 +57,76 @@
             createBoard();
             renderPieces();
             scene.add(piecesGroup);
-            
             window.addEventListener('pointerdown', onPointerDown);
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-            
             animate();
         }
 
-        // Modern Voxel Builder using InstancedMesh Logic
-        function createComponent(coords, color) {
+        function createComp(coords, color) {
             if (coords.length === 0) return new THREE.Group();
-            
-            const geometry = new THREE.BoxBufferGeometry(S, S, S);
-            const material = new THREE.MeshLambertMaterial({ color: color });
-            const mesh = new THREE.InstancedMesh(geometry, material, coords.length);
-            
-            const dummy = new THREE.Object3D();
+            const geo = new THREE.BoxBufferGeometry(S, S, S);
+            const mat = new THREE.MeshLambertMaterial({ color: color });
+            const mesh = new THREE.InstancedMesh(geo, mat, coords.length);
+            const d = new THREE.Object3D();
             coords.forEach((c, i) => {
-                dummy.position.set(c[0] * S, c[1] * S, c[2] * S);
-                dummy.updateMatrix();
-                mesh.setMatrixAt(i, dummy.matrix);
+                d.position.set(c[0] * S, c[1] * S, c[2] * S);
+                d.updateMatrix();
+                mesh.setMatrixAt(i, d.matrix);
             });
-            
             return mesh;
         }
 
         function buildVoxelPiece(type, side, gridX, gridZ) {
             const group = new THREE.Group();
             const isEmp = (side === 'b');
-            const dir = isEmp ? 1 : -1;
             group.userData = { type, side, gridX, gridZ };
 
-            let vox = { body: [], head: [], legs: [], wings: [], details: [] };
+            let v = { main: [], head: [], legs: [], det: [], gold: [] };
 
             if(isEmp) {
                 switch(type) {
+                    case 'b': // ROYAL GUARD
+                        for(let y=0; y<18; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.main.push([x,y,z]);
+                        for(let y=18; y<25; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.head.push([x,y,z]);
+                        v.det.push([0, 20, 3.2], [0, 21, 3.2], [0, 22, 3.2]);
+                        group.add(createComp(v.main, 0x990000), createComp(v.head, 0x770000), createComp(v.det, 0x000000));
+                        break;
                     case 'n': // AT-AT
-                        for(let x=-4; x<=4; x++) for(let y=10; y<17; y++) for(let z=-7; z<=7; z++) vox.body.push([x,y,z]);
-                        [[-3,-6],[3,-6],[-3,6],[3,6]].forEach(p => {
-                            for(let y=0; y<10; y++) vox.legs.push([p[0], y, p[1]]);
-                        });
-                        // Head Pivot Logic
-                        for(let x=-3; x<=3; x++) for(let y=-2; y<2; y++) for(let z=0; z<5; z++) vox.head.push([x,y,z]);
-                        
-                        group.add(createComponent(vox.body, 0x666666));
-                        group.add(createComponent(vox.legs, 0x444444));
-                        
-                        const headMesh = createComponent(vox.head, 0x777777);
-                        headMesh.position.set(0, 13.5 * S, 7 * S); // Position at neck
-                        headMesh.name = "atat_head";
-                        group.add(headMesh);
+                        for(let x=-4; x<=4; x++) for(let y=10; y<17; y++) for(let z=-7; z<=7; z++) v.main.push([x,y,z]);
+                        [[-3,-6],[3,-6],[-3,6],[3,6]].forEach(p => { for(let y=0; y<10; y++) v.legs.push([p[0], y, p[1]]); });
+                        for(let x=-3; x<=3; x++) for(let y=-2; y<2; y++) for(let z=0; z<5; z++) v.head.push([x,y,z]);
+                        group.add(createComp(v.main, 0x666666), createComp(v.legs, 0x444444));
+                        const h = createComp(v.head, 0x777777); h.position.set(0, 13.5 * S, 7 * S); h.name = "atat_head"; group.add(h);
                         break;
-
-                    case 'r': // STAR DESTROYER
-                        for(let z=-12; z<=10; z++) {
-                            let w = Math.floor((10-z)/2);
-                            for(let x=-w; x<=w; x++) vox.body.push([x, 5, z]);
-                        }
-                        for(let x=-3; x<=3; x++) for(let y=6; y<9; y++) for(let z=-3; z<2; z++) vox.details.push([x,y,z]);
-                        group.add(createComponent(vox.body, 0x555555));
-                        group.add(createComponent(vox.details, 0x444444));
-                        break;
-
-                    case 'k': // VADER
-                        for(let y=0; y<16; y++) for(let x=-4; x<=4; x++) for(let z=-3; z<=3; z++) vox.body.push([x,y,z]);
-                        for(let x=-6; x<=6; x++) for(let z=-6; z<=1; z++) vox.details.push([x, 16, z]); // Flare
-                        for(let y=17; y<22; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) vox.head.push([x,y,z]);
-                        group.add(createComponent(vox.body, 0x111111));
-                        group.add(createComponent(vox.details, 0x050505));
-                        group.add(createComponent(vox.head, 0x111111));
-                        break;
-
-                    default: // PAWN
-                        for(let y=0; y<14; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) vox.body.push([x,y,z]);
-                        for(let y=14; y<19; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) vox.head.push([x,y,z]);
-                        group.add(createComponent(vox.body, 0xeeeeee));
-                        group.add(createComponent(vox.head, 0xcccccc));
+                    default: // VADER/KING/PAWN
+                        let c = type === 'p' ? 0xdddddd : 0x111111;
+                        for(let y=0; y<18; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.main.push([x,y,z]);
+                        group.add(createComp(v.main, c));
                 }
             } else {
                 switch(type) {
-                    case 'n': // X-WING
-                        for(let x=-2; x<=2; x++) for(let y=6; y<8; y++) for(let z=-14; z<=10; z++) vox.body.push([x,y,z*dir]);
-                        const wz = -8;
-                        for(let i=1; i<14; i++) {
-                            let r = i*0.4; let s = 2+i;
-                            vox.wings.push([s, 7+r, wz*dir], [-s, 7+r, wz*dir], [s, 7-r, wz*dir], [-s, 7-r, wz*dir]);
-                            if(i === 13) for(let pz=-5; pz<4; pz++) vox.details.push([s, 7+r, (wz+pz)*dir], [-s, 7+r, (wz+pz)*dir], [s, 7-r, (wz+pz)*dir], [-s, 7-r, (wz+pz)*dir]);
-                        }
-                        group.add(createComponent(vox.body, 0xeeeeee));
-                        group.add(createComponent(vox.wings, 0xcccccc));
-                        group.add(createComponent(vox.details, 0x990000)); // Wing poles
+                    case 'p': // CLONE TROOPER
+                        for(let y=0; y<14; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x,y,z]);
+                        for(let y=14; y<19; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.head.push([x,y,z]);
+                        v.det.push([0, 19, 0], [0, 20, 0]); // Fin
+                        for(let x=-2; x<=2; x++) v.det.push([x, 16.5, 4.1]); // Visor
+                        group.add(createComp(v.main, 0xffffff), createComp(v.head, 0xffffff), createComp(v.det, 0x000000));
                         break;
-                    default: 
-                        for(let y=0; y<18; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) vox.body.push([x,y,z]);
-                        group.add(createComponent(vox.body, 0x3d2b1f));
+                    case 'r': // THE SPLIT
+                        if (gridX < 4) { // R2-D2 (Left Side)
+                            for(let y=0; y<10; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.main.push([x, y, z]);
+                            for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.head.push([x, 10, z]);
+                            v.det.push([0, 11, 2.5], [1, 9, 3.1], [-1, 7, 3.1]); 
+                            group.add(createComp(v.main, 0xffffff), createComp(v.head, 0x999999), createComp(v.det, 0x0044ff));
+                        } else { // C-3PO (Right Side)
+                            for(let y=0; y<14; y++) for(let x=-2; x<=2; x++) v.gold.push([x, y, 0]); // Body
+                            for(let y=14; y<20; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v.gold.push([x, y, z]); // Head
+                            v.det.push([1, 17, 2.1], [-1, 17, 2.1]); // Eyes
+                            group.add(createComp(v.gold, 0xc5a000), createComp(v.det, 0xffff00));
+                        }
+                        break;
+                    default: // JEDI/KING/QUEEN
+                        for(let y=0; y<20; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.main.push([x,y,z]);
+                        group.add(createComp(v.main, 0x3d2b1f));
                 }
             }
 
@@ -213,14 +180,9 @@
                     const move = game.move({ from: selectedSquare, to: coord, promotion: 'q' });
                     selectedSquare = null;
                     boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
-                    if(move) { renderPieces(); updateUI(); if(isAiMode) setTimeout(aiMove, 500); }
+                    if(move) { renderPieces(); updateUI(); if(isAiMode) setTimeout(() => { const moves = game.moves(); if(moves.length > 0) { game.move(moves[Math.floor(Math.random()*moves.length)]); renderPieces(); updateUI(); } }, 500); }
                 }
             }
-        }
-
-        function aiMove() {
-            const moves = game.moves();
-            if(moves.length > 0) { game.move(moves[Math.floor(Math.random()*moves.length)]); renderPieces(); updateUI(); }
         }
 
         function updateUI() { let t = game.turn() === 'w' ? "REBEL" : "EMPIRE"; document.getElementById('status-text').innerText = game.game_over() ? "WAR OVER" : t + " TURN"; }
@@ -232,9 +194,9 @@
             controls.update(); 
             const time = Date.now() * 0.002;
             piecesGroup.children.forEach((piece, i) => { 
-                piece.position.y = 0.1 + Math.sin(time + i) * 0.03; 
+                piece.position.y = 0.1 + Math.sin(time + i) * 0.02; 
                 const head = piece.getObjectByName("atat_head");
-                if(head) head.rotation.y = Math.sin(time * 0.5 + i) * 0.5;
+                if(head) head.rotation.y = Math.sin(time * 0.5 + i) * 0.4;
             }); 
             renderer.render(scene, camera); 
         }
