@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Low-Angle X-Wing Chess</title>
+    <title>Sculpted Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -15,8 +15,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">S-FOILS: WIDE & LOW</div>
-        <div id="sub-text">ATTACK VECTOR LOCKED</div>
+        <div id="status-text">HELMETS RE-SCULPTED</div>
+        <div id="sub-text">VOXEL ROUNDING APPLIED</div>
     </div>
 
     <div class="controls">
@@ -94,68 +94,60 @@
         function buildVoxelPiece(type, side, gridX, gridZ) {
             const group = new THREE.Group();
             const isEmp = (side === 'b');
-            const grey = 0x333333;
-            const vaderGrey = 0x1a1a1a;
             const white = 0xeeeeee;
+            const vaderDark = 0x111111;
             const saber = isEmp ? 0xff0000 : 0x00ffaa;
             const dir = isEmp ? 1 : -1;
 
             if(isEmp) {
                 switch(type) {
-                    case 'k': // VADER (CHUNKY)
+                    case 'k': // VADER (SCULPTED HELMET)
+                        // Body & Cape
                         for(let y=0; y<14; y++) {
                             for(let x=-4; x<=4; x++) for(let z=-3; z<0; z++) v(group, x, y, z, 0x080808); 
-                            for(let x=-2.5; x<=2.5; x++) for(let z=0; z<=2.5; z++) v(group, x, y, z, vaderGrey); 
+                            for(let x=-2; x<=2; x++) for(let z=0; z<=2; z++) v(group, x, y, z, vaderDark); 
                         }
-                        for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=14; y<19; y++) v(group, x, y, z, vaderGrey); 
+                        // Helmet Dome
+                        for(let y=14; y<18; y++) {
+                            let r = (18-y); // Taper up
+                            for(let x=-r; x<=r; x++) for(let z=-r; z<=r; z++) v(group, x, y, z, vaderDark);
+                        }
+                        // Flared Neck/Cape Base
+                        for(let x=-4; x<=4; x++) for(let z=-4; z<=-1; z++) v(group, x, 14, z, vaderDark);
+                        // Face Mask Triangle
+                        for(let y=14; y<16; y++) for(let x=-1; x<=1; x++) v(group, x, y, 2.5, vaderDark);
+                        // Saber
                         for(let y=7; y<22; y++) v(group, 5.5, y, 3, saber); 
                         break;
-                    case 'p': // TROOPER
-                        for(let y=0; y<10; y++) for(let x=-2.5; x<=2.5; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, white); 
-                        for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=10; y<15; y++) v(group, x, y, z, white); 
-                        for(let x=-2; x<=2; x++) v(group, x, 11, 3.6, 0x000000); 
+                    case 'p': // TROOPER (ROUNDED HELMET)
+                        for(let y=0; y<10; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, white); 
+                        // Dome top
+                        for(let y=10; y<14; y++) {
+                            let s = y > 12 ? 2 : 3; // Taper top
+                            for(let x=-s; x<=s; x++) for(let z=-s; z<=s; z++) v(group, x, y, z, white);
+                        }
+                        // Snout / Mask protrude
+                        for(let x=-1.5; x<=1.5; x++) for(let y=10; y<12; y++) v(group, x, y, 3.2, white);
+                        // Eye Visor
+                        for(let x=-2.5; x<=2.5; x++) v(group, x, 12, 3.1, 0x000000); 
                         break;
                     case 'n': // STAR DESTROYER
                         for(let z=-10; z<=8; z++) {
                             let w = Math.floor((8 - z) / 2.5);
-                            for(let x=-w; x<=w; x++) { v(group, x, 2, z*dir, grey); v(group, x, 3, z*dir, grey); }
+                            for(let x=-w; x<=w; x++) { v(group, x, 2, z*dir, 0x333333); v(group, x, 3, z*dir, 0x333333); }
                         }
-                        for(let x=-3; x<=3; x++) for(let z=-9; z<=-6; z++) for(let y=4; y<7; y++) v(group, x, y, z*dir, grey);
                         break;
-                    default: for(let y=0; y<15; y++) v(group, 0, y, 0, grey); break;
+                    default: for(let y=0; y<15; y++) v(group, 0, y, 0, 0x333333); break;
                 }
             } else {
                 switch(type) {
-                    case 'n': // X-WING (LOW-ANGLE S-FOILS)
-                        // Extra-Long Nose Fuselage
-                        for(let x=-1.5; x<=1.5; x++) {
-                            for(let y=3.5; y<=4.5; y++) {
-                                for(let z=-15; z<=8; z++) v(group, x, y, z*dir, white); 
-                            }
-                        }
-                        
+                    case 'n': // X-WING (REAR WINGS)
+                        for(let x=-1.5; x<=1.5; x++) for(let y=3.5; y<=4.5; y++) for(let z=-15; z<=8; z++) v(group, x, y, z*dir, white); 
                         const wingZ = -11; 
-                        
-                        // Engine Blocks
-                        const engineX = 2.5;
-                        [[-engineX, 4.3], [engineX, 4.3], [-engineX, 3.7], [engineX, 3.7]].forEach(pos => {
-                            for(let x=pos[0]-1; x<=pos[0]+1; x++) 
-                                for(let y=pos[1]-1; y<=pos[1]+1; y++)
-                                    for(let z=wingZ-3; z<=wingZ+1; z++) v(group, x, y, z*dir, 0x333333);
-                        });
-
-                        // WINGS: Flatter angle (more horizontal spread than vertical rise)
                         for(let i=1; i<13; i++) {
-                            let rise = i * 0.45; // Low vertical rise
-                            let spread = 1.5 + i; // Wide horizontal spread
-                            
-                            const zThick = [0, -1, -2];
-                            zThick.forEach(zo => {
-                                v(group, spread, 4.3+rise, (wingZ+zo)*dir, white); // Top Right
-                                v(group, -spread, 4.3+rise, (wingZ+zo)*dir, white); // Top Left
-                                v(group, spread, 3.7-rise, (wingZ+zo)*dir, white); // Bottom Right
-                                v(group, -spread, 3.7-rise, (wingZ+zo)*dir, white); // Bottom Left
-                            });
+                            let rise = i * 0.45; let spread = 1.5 + i;
+                            v(group, spread, 4.3+rise, wingZ*dir, white); v(group, -spread, 4.3+rise, wingZ*dir, white);
+                            v(group, spread, 3.7-rise, wingZ*dir, white); v(group, -spread, 3.7-rise, wingZ*dir, white);
                         }
                         break;
                     case 'k': // JEDI
@@ -164,7 +156,7 @@
                         break;
                     case 'p': // REBEL
                         for(let y=0; y<10; y++) for(let x=-2.5; x<=2.5; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, 0x335533);
-                        for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xddccbb);
+                        for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xddccbb);
                         break;
                     default: for(let y=0; y<15; y++) v(group, 0, y, 0, white); break;
                 }
@@ -198,29 +190,15 @@
                     const move = game.move({ from: selectedSquare, to: coord, promotion: 'q' });
                     selectedSquare = null;
                     boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
-                    if(move) {
-                        renderPieces(); updateUI();
-                        if(isAiMode && !game.game_over()) setTimeout(() => {
-                            const moves = game.moves();
-                            if(moves.length > 0) { game.move(moves[Math.floor(Math.random()*moves.length)]); renderPieces(); updateUI(); }
-                        }, 500);
-                    }
+                    if(move) { renderPieces(); updateUI(); if(isAiMode && !game.game_over()) setTimeout(() => { const moves = game.moves(); if(moves.length > 0) { game.move(moves[Math.floor(Math.random()*moves.length)]); renderPieces(); updateUI(); } }, 500); }
                 }
             }
         }
 
-        function updateUI() {
-            let t = game.turn() === 'w' ? "REBEL" : "EMPIRE";
-            document.getElementById('status-text').innerText = game.game_over() ? "MISSION OVER" : t + " TURN";
-        }
+        function updateUI() { let t = game.turn() === 'w' ? "REBEL" : "EMPIRE"; document.getElementById('status-text').innerText = game.game_over() ? "MISSION OVER" : t + " TURN"; }
         function setMode(m) { isAiMode = (m === 'ai'); resetGame(); }
         function resetGame() { game.reset(); renderPieces(); updateUI(); selectedSquare = null; }
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            piecesGroup.children.forEach((p, i) => { p.position.y = 0.1 + Math.sin(Date.now()*0.002+i)*0.03; });
-            renderer.render(scene, camera);
-        }
+        function animate() { requestAnimationFrame(animate); controls.update(); piecesGroup.children.forEach((p, i) => { p.position.y = 0.1 + Math.sin(Date.now()*0.002+i)*0.03; }); renderer.render(scene, camera); }
         window.onload = init;
     </script>
 </body>
