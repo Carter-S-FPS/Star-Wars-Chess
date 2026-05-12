@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sculpted Voxel Chess</title>
+    <title>Molded Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -15,8 +15,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">HELMETS RE-SCULPTED</div>
-        <div id="sub-text">VOXEL ROUNDING APPLIED</div>
+        <div id="status-text">HELMETS: MOLDED & BLOCKY</div>
+        <div id="sub-text">PYRAMID GEOMETRY REMOVED</div>
     </div>
 
     <div class="controls">
@@ -101,35 +101,35 @@
 
             if(isEmp) {
                 switch(type) {
-                    case 'k': // VADER (SCULPTED HELMET)
-                        // Body & Cape
+                    case 'k': // VADER (MOLDED CUBES)
+                        // Body
                         for(let y=0; y<14; y++) {
                             for(let x=-4; x<=4; x++) for(let z=-3; z<0; z++) v(group, x, y, z, 0x080808); 
                             for(let x=-2; x<=2; x++) for(let z=0; z<=2; z++) v(group, x, y, z, vaderDark); 
                         }
-                        // Helmet Dome
-                        for(let y=14; y<18; y++) {
-                            let r = (18-y); // Taper up
-                            for(let x=-r; x<=r; x++) for(let z=-r; z<=r; z++) v(group, x, y, z, vaderDark);
-                        }
-                        // Flared Neck/Cape Base
-                        for(let x=-4; x<=4; x++) for(let z=-4; z<=-1; z++) v(group, x, 14, z, vaderDark);
-                        // Face Mask Triangle
-                        for(let y=14; y<16; y++) for(let x=-1; x<=1; x++) v(group, x, y, 2.5, vaderDark);
+                        // Helmet Base (The Flare)
+                        for(let x=-4; x<=4; x++) for(let z=-4; z<=1; z++) v(group, x, 14, z, vaderDark);
+                        // Helmet Mid (The Block)
+                        for(let x=-3; x<=3; x++) for(let z=-3; z<=2; z++) v(group, x, 15, z, vaderDark);
+                        for(let x=-3; x<=3; x++) for(let z=-3; z<=2; z++) v(group, x, 16, z, vaderDark);
+                        // Helmet Top (Slightly smaller cube)
+                        for(let x=-2; x<=2; x++) for(let z=-2; z<=1; z++) v(group, x, 17, z, vaderDark);
                         // Saber
                         for(let y=7; y<22; y++) v(group, 5.5, y, 3, saber); 
                         break;
-                    case 'p': // TROOPER (ROUNDED HELMET)
+                    case 'p': // TROOPER (MOLDED LAYERS)
+                        // Body
                         for(let y=0; y<10; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, white); 
-                        // Dome top
-                        for(let y=10; y<14; y++) {
-                            let s = y > 12 ? 2 : 3; // Taper top
-                            for(let x=-s; x<=s; x++) for(let z=-s; z<=s; z++) v(group, x, y, z, white);
+                        // Helmet Lower/Neck
+                        for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v(group, 10, x, z, white); // Lower rim
+                        // Helmet Main Block
+                        for(let y=11; y<14; y++) {
+                            for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v(group, x, y, z, white);
                         }
-                        // Snout / Mask protrude
-                        for(let x=-1.5; x<=1.5; x++) for(let y=10; y<12; y++) v(group, x, y, 3.2, white);
-                        // Eye Visor
-                        for(let x=-2.5; x<=2.5; x++) v(group, x, 12, 3.1, 0x000000); 
+                        // Face Plate protrusion (Blocky snout)
+                        for(let x=-1.5; x<=1.5; x++) for(let y=10; y<12; y++) v(group, x, y, 3.5, white);
+                        // Visor
+                        for(let x=-3; x<=3; x++) v(group, x, 12, 3.1, 0x000000); 
                         break;
                     case 'n': // STAR DESTROYER
                         for(let z=-10; z<=8; z++) {
@@ -141,7 +141,7 @@
                 }
             } else {
                 switch(type) {
-                    case 'n': // X-WING (REAR WINGS)
+                    case 'n': // X-WING (REAR WINGS, LOW ANGLE)
                         for(let x=-1.5; x<=1.5; x++) for(let y=3.5; y<=4.5; y++) for(let z=-15; z<=8; z++) v(group, x, y, z*dir, white); 
                         const wingZ = -11; 
                         for(let i=1; i<13; i++) {
@@ -156,7 +156,7 @@
                         break;
                     case 'p': // REBEL
                         for(let y=0; y<10; y++) for(let x=-2.5; x<=2.5; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, 0x335533);
-                        for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xddccbb);
+                        for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xddccbb);
                         break;
                     default: for(let y=0; y<15; y++) v(group, 0, y, 0, white); break;
                 }
@@ -165,6 +165,7 @@
             piecesGroup.add(group);
         }
 
+        // Standard Chess Logic
         function renderPieces() {
             while(piecesGroup.children.length > 0) piecesGroup.remove(piecesGroup.children[0]);
             const state = game.board();
