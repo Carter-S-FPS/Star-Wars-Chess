@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Corrected X-Wing Voxel Chess</title>
+    <title>Low-Angle X-Wing Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -15,8 +15,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">REAR ASSEMBLY CALIBRATED</div>
-        <div id="sub-text">LONG-NOSE FUSELAGE DEPLOYED</div>
+        <div id="status-text">S-FOILS: WIDE & LOW</div>
+        <div id="sub-text">ATTACK VECTOR LOCKED</div>
     </div>
 
     <div class="controls">
@@ -102,7 +102,7 @@
 
             if(isEmp) {
                 switch(type) {
-                    case 'k': // VADER
+                    case 'k': // VADER (CHUNKY)
                         for(let y=0; y<14; y++) {
                             for(let x=-4; x<=4; x++) for(let z=-3; z<0; z++) v(group, x, y, z, 0x080808); 
                             for(let x=-2.5; x<=2.5; x++) for(let z=0; z<=2.5; z++) v(group, x, y, z, vaderGrey); 
@@ -126,35 +126,35 @@
                 }
             } else {
                 switch(type) {
-                    case 'n': // X-WING (TRUE REAR WINGS)
-                        // Fuselage: Constant thickness, but long nose
+                    case 'n': // X-WING (LOW-ANGLE S-FOILS)
+                        // Extra-Long Nose Fuselage
                         for(let x=-1.5; x<=1.5; x++) {
                             for(let y=3.5; y<=4.5; y++) {
-                                for(let z=-14; z<=8; z++) v(group, x, y, z*dir, white); 
+                                for(let z=-15; z<=8; z++) v(group, x, y, z*dir, white); 
                             }
                         }
                         
-                        // Shift assembly to the absolute REAR (-10 to -14 area)
-                        const wingZ = -10; 
+                        const wingZ = -11; 
                         
-                        // Engines: Beefy and back-heavy
+                        // Engine Blocks
                         const engineX = 2.5;
                         [[-engineX, 4.3], [engineX, 4.3], [-engineX, 3.7], [engineX, 3.7]].forEach(pos => {
                             for(let x=pos[0]-1; x<=pos[0]+1; x++) 
                                 for(let y=pos[1]-1; y<=pos[1]+1; y++)
-                                    for(let z=wingZ-3; z<=wingZ+1; z++) v(group, x, y, z*dir, 0x444444);
+                                    for(let z=wingZ-3; z<=wingZ+1; z++) v(group, x, y, z*dir, 0x333333);
                         });
 
-                        // Wings: Sharp angles starting from the very back of the fuselage
-                        for(let i=1; i<12; i++) {
-                            let angle = i * 1.2; 
-                            // Wing panels with thickness
-                            const zOffsets = [0, -1, -2];
-                            zOffsets.forEach(zo => {
-                                v(group, 1.5+i, 4+angle, (wingZ+zo)*dir, white); // Top Right
-                                v(group, -1.5-i, 4+angle, (wingZ+zo)*dir, white); // Top Left
-                                v(group, 1.5+i, 4-angle, (wingZ+zo)*dir, white); // Bottom Right
-                                v(group, -1.5-i, 4-angle, (wingZ+zo)*dir, white); // Bottom Left
+                        // WINGS: Flatter angle (more horizontal spread than vertical rise)
+                        for(let i=1; i<13; i++) {
+                            let rise = i * 0.45; // Low vertical rise
+                            let spread = 1.5 + i; // Wide horizontal spread
+                            
+                            const zThick = [0, -1, -2];
+                            zThick.forEach(zo => {
+                                v(group, spread, 4.3+rise, (wingZ+zo)*dir, white); // Top Right
+                                v(group, -spread, 4.3+rise, (wingZ+zo)*dir, white); // Top Left
+                                v(group, spread, 3.7-rise, (wingZ+zo)*dir, white); // Bottom Right
+                                v(group, -spread, 3.7-rise, (wingZ+zo)*dir, white); // Bottom Left
                             });
                         }
                         break;
