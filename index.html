@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>High-Volume Voxel Chess</title>
+    <title>Rear-Wing Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -15,8 +15,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">WINGS LOCKING IN POSITION</div>
-        <div id="sub-text">S-FOILS ADJUSTED</div>
+        <div id="status-text">X-WING GEOMETRY FIXED</div>
+        <div id="sub-text">WINGS MOVED TO REAR ASSEMBLY</div>
     </div>
 
     <div class="controls">
@@ -41,28 +41,22 @@
             game = new Chess();
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x010105);
-
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 14, 10);
-
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
-
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             const light = new THREE.DirectionalLight(0xffffff, 1.2);
             light.position.set(5, 15, 5);
             scene.add(light);
-
             createStars();
             createBoard();
             renderPieces();
             scene.add(piecesGroup);
-
             window.addEventListener('pointerdown', onPointerDown);
             animate();
         }
@@ -108,20 +102,18 @@
 
             if(isEmp) {
                 switch(type) {
-                    case 'k': // VADER (CHUNKY)
+                    case 'k': // VADER (HEAVY VOLUME)
                         for(let y=0; y<14; y++) {
-                            for(let x=-4; x<=4; x++) for(let z=-3; z<0; z++) v(group, x, y, z, 0x080808); // Thick Cape
-                            for(let x=-2; x<=2; x++) for(let z=0; z<=2; z++) v(group, x, y, z, vaderGrey); // Wide Torso
+                            for(let x=-4; x<=4; x++) for(let z=-3; z<0; z++) v(group, x, y, z, 0x080808); 
+                            for(let x=-2.5; x<=2.5; x++) for(let z=0; z<=2.5; z++) v(group, x, y, z, vaderGrey); 
                         }
-                        for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) for(let y=14; y<19; y++) v(group, x, y, z, vaderGrey); // Blocky Helmet
-                        for(let y=7; y<22; y++) v(group, 5, y, 3, saber); // Saber
+                        for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=14; y<19; y++) v(group, x, y, z, vaderGrey); 
+                        for(let y=7; y<22; y++) v(group, 5.5, y, 3, saber); 
                         break;
-                    case 'p': // TROOPER (THICK ARMOR)
-                        for(let y=0; y<10; y++) {
-                            for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, white); // Solid white body
-                        }
-                        for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) for(let y=10; y<15; y++) v(group, x, y, z, white); // Helmet
-                        for(let x=-2; x<=2; x++) v(group, x, 11, 3.1, 0x000000); // Visor
+                    case 'p': // TROOPER (SOLID VOLUME)
+                        for(let y=0; y<10; y++) for(let x=-2.5; x<=2.5; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, white); 
+                        for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=10; y<15; y++) v(group, x, y, z, white); 
+                        for(let x=-2; x<=2; x++) v(group, x, 11, 3.6, 0x000000); 
                         break;
                     case 'n': // STAR DESTROYER
                         for(let z=-10; z<=8; z++) {
@@ -130,56 +122,49 @@
                         }
                         for(let x=-3; x<=3; x++) for(let z=-9; z<=-6; z++) for(let y=4; y<7; y++) v(group, x, y, z*dir, grey);
                         break;
-                    default: // AT-AT
-                        for(let x=-3; x<=3; x+=6) for(let z=-4; z<=4; z+=8) for(let y=0; y<10; y++) v(group, x, y, z, 0x444444);
-                        for(let x=-5; x<=5; x++) for(let z=-8; z<=8; z++) for(let y=10; y<15; y++) v(group, x, y, z, 0x444444);
-                        for(let x=-3; x<=3; x++) for(let z=8; z<=12; z++) for(let y=11; y<15; y++) v(group, x, y, z*dir, 0x444444);
-                        break;
+                    default: for(let y=0; y<15; y++) v(group, 0, y, 0, grey); break;
                 }
             } else {
                 switch(type) {
-                    case 'n': // X-WING (ANGLED S-FOILS)
-                        // Thick Fuselage
-                        for(let x=-1.5; x<=1.5; x++) for(let y=3; y<=5; y++) for(let z=-11; z<=5; z++) v(group, x, y, z*dir, white); 
-                        // Angled Wings logic
-                        for(let i=1; i<9; i++) {
-                            let angle = i * 0.8; // Steeper angle
-                            // Top Right
-                            v(group, 1.5+i, 4.5+angle, -2*dir, white); v(group, 1.5+i, 4.5+angle, -3*dir, white);
-                            // Top Left
-                            v(group, -1.5-i, 4.5+angle, -2*dir, white); v(group, -1.5-i, 4.5+angle, -3*dir, white);
-                            // Bottom Right
-                            v(group, 1.5+i, 3.5-angle, -2*dir, white); v(group, 1.5+i, 3.5-angle, -3*dir, white);
-                            // Bottom Left
-                            v(group, -1.5-i, 3.5-angle, -2*dir, white); v(group, -1.5-i, 3.5-angle, -3*dir, white);
-                        }
-                        // Engines (Cylinders)
-                        [[-1.5,4.5], [1.5,4.5], [-1.5,3.5], [1.5,3.5]].forEach(pos => {
+                    case 'n': // X-WING (WINGS AT BACK)
+                        // Thick Long Fuselage (Extended Nose)
+                        for(let x=-1.5; x<=1.5; x++) for(let y=3.5; y<=4.5; y++) for(let z=-12; z<=6; z++) v(group, x, y, z*dir, white); 
+                        
+                        const wingZStart = -4; // Shifted wings to the REAR of the ship
+                        
+                        // Engine Cylinders at the REAR side
+                        const engineX = 2.5; 
+                        [[-engineX, 4.2], [engineX, 4.2], [-engineX, 3.8], [engineX, 3.8]].forEach(pos => {
                             for(let x=pos[0]-1; x<=pos[0]+1; x++) 
                                 for(let y=pos[1]-1; y<=pos[1]+1; y++)
-                                    for(let z=-4; z<=-1; z++) v(group, x, y, z*dir, 0x555555);
+                                    for(let z=wingZStart-2; z<=wingZStart+1; z++) v(group, x, y, z*dir, 0x333333);
                         });
+
+                        // Angled Wings sprouting from the REAR assembly
+                        for(let i=1; i<11; i++) {
+                            let angle = i * 1.1; 
+                            // Wing Voxels
+                            v(group, 1.5+i, 4+angle, wingZStart*dir, white); v(group, 1.5+i, 4+angle, (wingZStart-1)*dir, white);
+                            v(group, -1.5-i, 4+angle, wingZStart*dir, white); v(group, -1.5-i, 4+angle, (wingZStart-1)*dir, white);
+                            v(group, 1.5+i, 4-angle, wingZStart*dir, white); v(group, 1.5+i, 4-angle, (wingZStart-1)*dir, white);
+                            v(group, -1.5-i, 4-angle, wingZStart*dir, white); v(group, -1.5-i, 4-angle, (wingZStart-1)*dir, white);
+                        }
                         break;
-                    case 'k': // JEDI (CHUNKY ROBES)
+                    case 'k': // JEDI
                         for(let y=0; y<15; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v(group, x, y, z, 0x4a3728);
                         for(let y=8; y<24; y++) v(group, 5, y, 0, saber);
                         break;
-                    case 'p': // REBEL SOLDIER (THICK)
-                        for(let y=0; y<10; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, 0x335533);
-                        for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xddccbb);
+                    case 'p': // REBEL
+                        for(let y=0; y<10; y++) for(let x=-2.5; x<=2.5; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, 0x335533);
+                        for(let x=-3.5; x<=3.5; x++) for(let z=-3.5; z<=3.5; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xddccbb);
                         break;
-                    default: // FALCON
-                        for(let x=-6; x<=6; x++) for(let z=-6; z<=6; z++) if(x*x + z*z < 36) { v(group, x, 2, z, white); v(group, x, 3, z, white); }
-                        v(group, 5, 4, 3, 0x999999);
-                        break;
+                    default: for(let y=0; y<15; y++) v(group, 0, y, 0, white); break;
                 }
             }
-
             group.position.set(gridX - 3.5, 0.1, gridZ - 3.5);
             piecesGroup.add(group);
         }
 
-        // --- Standard Controller Logic ---
         function renderPieces() {
             while(piecesGroup.children.length > 0) piecesGroup.remove(piecesGroup.children[0]);
             const state = game.board();
