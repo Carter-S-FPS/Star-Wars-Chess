@@ -2,144 +2,148 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Star Wars Chess</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Voxel Chess Mobile</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui {
-            position: absolute; top: 20px; width: 100%; text-align: center;
-            color: #00eeff; pointer-events: none; text-shadow: 0 0 10px #00eeff;
+            position: absolute; top: 10px; width: 100%; text-align: center;
+            color: #00eeff; pointer-events: none; z-index: 10;
         }
         .controls {
-            position: absolute; bottom: 20px; width: 100%; display: flex;
-            justify-content: center; gap: 20px;
+            position: absolute; bottom: 20px; width: 100%; 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            padding: 0 10px; box-sizing: border-box; z-index: 10;
         }
         button {
-            padding: 10px 20px; background: rgba(0, 238, 255, 0.2);
-            color: #00eeff; border: 1px solid #00eeff; cursor: pointer;
-            backdrop-filter: blur(5px); font-weight: bold;
+            padding: 15px 5px; background: rgba(0, 30, 60, 0.9);
+            color: #00eeff; border: 2px solid #00eeff; font-weight: bold;
+            font-size: 12px; border-radius: 8px; pointer-events: auto;
         }
-        button:hover { background: #00eeff; color: #000; }
-        #status-text { font-size: 1.2em; margin-bottom: 10px; text-transform: uppercase; }
+        button:active { background: #00eeff; color: #000; }
+        #status-text { font-size: 1.2em; text-shadow: 0 0 10px #00eeff; }
+        #sub-text { font-size: 0.8em; opacity: 0.8; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <div id="status-text">Select Mode to Begin</div>
-        <div class="controls">
-            <button onclick="setMode('pvp')">Local 2 Player</button>
-            <button onclick="setMode('ai')">Vs Imperial AI</button>
-            <button onclick="resetGame()">Reset Board</button>
-        </div>
+        <div id="status-text">SYSTEM READY</div>
+        <div id="sub-text">TAP PIECE TO SELECT</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="setMode('pvp')">2 PLAYER</button>
+        <button onclick="setMode('ai')">VS AI</button>
+        <button onclick="resetGame()" style="grid-column: span 2;">RESET MISSION</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
     <script>
-        let scene, camera, renderer, game, board = [];
+        let scene, camera, renderer, controls, game;
         let selectedSquare = null;
         let isAiMode = false;
-        const piecesGroup = new THREE.Group();
+        let piecesGroup = new THREE.Group();
+        let boardSquares = [];
 
         function init() {
             game = new Chess();
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x020205);
 
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 12, 10);
-            camera.lookAt(0, 0, 0);
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 14, 10);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
 
-            // Lights
-            const sun = new THREE.DirectionalLight(0xffffff, 1);
-            sun.position.set(5, 10, 5);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.rotateSpeed = 0.8; // Smoother for mobile
+
+            // Lighting
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const sun = new THREE.PointLight(0x00eeff, 1, 100);
+            sun.position.set(0, 10, 0);
             scene.add(sun);
-            scene.add(new THREE.AmbientLight(0x404040, 1.5));
 
             createStars();
             createBoard();
             renderPieces();
             scene.add(piecesGroup);
 
-            window.addEventListener('mousedown', onMouseDown);
+            // Use Pointer Events for cross-compatibility (Touch + Mouse)
+            window.addEventListener('pointerdown', onPointerDown);
             animate();
         }
 
         function createStars() {
-            const geo = new THREE.BufferGeometry();
             const coords = [];
-            for(let i=0; i<3000; i++) coords.push((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
+            for(let i=0; i<1500; i++) coords.push((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
+            const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
-            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.1})));
+            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.15})));
         }
 
         function createBoard() {
             for (let x = 0; x < 8; x++) {
                 for (let z = 0; z < 8; z++) {
                     const isBlack = (x + z) % 2 !== 0;
-                    const geo = new THREE.BoxGeometry(0.95, 0.2, 0.95);
+                    const geo = new THREE.BoxGeometry(0.98, 0.4, 0.98); // Thicker squares for easier tapping
                     const mat = new THREE.MeshPhongMaterial({
                         color: isBlack ? 0x111111 : 0x222222,
-                        emissive: isBlack ? 0x000000 : 0x001122
+                        transparent: true,
+                        opacity: 0.9
                     });
                     const square = new THREE.Mesh(geo, mat);
-                    square.position.set(x - 3.5, 0, z - 3.5);
-                    square.userData = { x, z };
+                    square.position.set(x - 3.5, -0.2, z - 3.5);
+                    square.userData = { x, z, originalColor: mat.color.getHex() };
                     scene.add(square);
+                    boardSquares.push(square);
                 }
             }
         }
 
         function renderPieces() {
             while(piecesGroup.children.length > 0) piecesGroup.remove(piecesGroup.children[0]);
-            
-            const boardState = game.board();
+            const state = game.board();
             for(let r=0; r<8; r++) {
                 for(let c=0; c<8; c++) {
-                    const p = boardState[r][c];
-                    if(p) createVoxelPiece(p.type, p.color, c, r);
+                    if(state[r][c]) createVoxelPiece(state[r][c].type, state[r][c].color, c, r);
                 }
             }
         }
 
         function createVoxelPiece(type, color, x, z) {
             const group = new THREE.Group();
-            const c = (color === 'w') ? 0x00eeff : 0x333333; // Rebel Blue vs Imperial Grey
-            const mat = new THREE.MeshLambertMaterial({color: c});
-            const glow = new THREE.MeshLambertMaterial({color: (color === 'w') ? 0xffffff : 0xff0000});
+            const mat = new THREE.MeshLambertMaterial({color: color === 'w' ? 0x00ccff : 0x444444});
+            const glow = new THREE.MeshLambertMaterial({color: color === 'w' ? 0xffffff : 0xff3333});
 
             const addB = (px, py, pz, m=mat) => {
-                const b = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), m);
-                b.position.set(px*0.15, py*0.15, pz*0.15);
+                const b = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), m);
+                b.position.set(px*0.2, py*0.2, pz*0.2);
                 group.add(b);
             };
 
-            // Enhanced Voxel logic
-            if(type === 'p') { // Pawn / Trooper
-                for(let y=0; y<3; y++) addB(0,y,0);
-                addB(0,3,0, glow);
-            } else if(type === 'n') { // Knight / Fighter
-                for(let i=-2; i<=2; i++) { addB(i,2,0); addB(i,2,1); addB(i,2,-1); }
-            } else if(type === 'r') { // Rook / Walker
-                for(let x1=-1; x1<=1; x1++) for(let z1=-1; z1<=1; z1++) addB(x1,0,z1);
-                for(let y=1; y<5; y++) addB(0,y,0);
-            } else if(type === 'k') { // King / Vader-Luke
-                for(let y=0; y<6; y++) addB(0,y,0);
-                addB(1,3,0, glow); // Saber
-            } else {
-                for(let y=0; y<5; y++) addB(0,y,0);
-            }
+            // Mobile-friendly simplified voxels
+            if(type === 'p') { for(let y=0; y<3; y++) addB(0,y,0); addB(0,3,0, glow); }
+            else if(type === 'k') { for(let y=0; y<5; y++) addB(0,y,0); addB(1,3,0, glow); }
+            else if(type === 'n') { for(let i=-1; i<=1; i++) addB(i,2,0); addB(0,2,1); }
+            else { for(let y=0; y<4; y++) addB(0,y,0); addB(0,4,0, glow); }
 
             group.position.set(x - 3.5, 0.2, z - 3.5);
             piecesGroup.add(group);
         }
 
-        function onMouseDown(event) {
+        function onPointerDown(event) {
+            // Only trigger if not clicking a button
+            if (event.target.tagName === 'BUTTON') return;
+
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2(
                 (event.clientX / window.innerWidth) * 2 - 1,
@@ -149,66 +153,81 @@
             const intersects = raycaster.intersectObjects(scene.children);
 
             if (intersects.length > 0) {
-                const sq = intersects[0].object.userData;
-                if(sq.x !== undefined) {
-                    const coord = String.fromCharCode(97 + sq.x) + (8 - sq.z);
-                    handleMove(coord);
+                const obj = intersects[0].object;
+                if(obj.userData.x !== undefined) {
+                    const coord = String.fromCharCode(97 + obj.userData.x) + (8 - obj.userData.z);
+                    handleMobileMove(coord, obj);
                 }
             }
         }
 
-        function handleMove(coord) {
+        function handleMobileMove(coord, mesh) {
             if(!selectedSquare) {
-                selectedSquare = coord;
-                document.getElementById('status-text').innerText = "Selected: " + coord;
+                const piece = game.get(coord);
+                if(piece && piece.color === game.turn()) {
+                    selectedSquare = coord;
+                    boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
+                    mesh.material.emissive.setHex(0x004400); 
+                    document.getElementById('status-text').innerText = "SELECTED " + coord.toUpperCase();
+                }
             } else {
                 const move = game.move({ from: selectedSquare, to: coord, promotion: 'q' });
                 selectedSquare = null;
+                boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
+                
                 if(move) {
                     renderPieces();
-                    checkStatus();
-                    if(isAiMode && !game.game_over()) setTimeout(makeAiMove, 500);
+                    updateUI();
+                    if(isAiMode && !game.game_over()) setTimeout(makeAiMove, 600);
                 } else {
-                    document.getElementById('status-text').innerText = "Invalid Maneuver";
+                    document.getElementById('status-text').innerText = "INVALID TARGET";
                 }
             }
         }
 
         function makeAiMove() {
             const moves = game.moves();
-            const randomMove = moves[Math.floor(Math.random() * moves.length)];
-            game.move(randomMove);
+            if(moves.length === 0) return;
+            game.move(moves[Math.floor(Math.random() * moves.length)]);
             renderPieces();
-            checkStatus();
+            updateUI();
         }
 
-        function checkStatus() {
-            let status = game.turn() === 'w' ? "Rebel Turn" : "Imperial Turn";
-            if(game.in_checkmate()) status = "CHECKMATE - SECTOR SECURED";
+        function updateUI() {
+            let status = game.turn() === 'w' ? "REBEL TURN" : "IMPERIAL TURN";
+            if(game.in_checkmate()) status = "MISSION COMPLETE";
             document.getElementById('status-text').innerText = status;
         }
 
         function setMode(mode) {
             isAiMode = (mode === 'ai');
             resetGame();
-            document.getElementById('status-text').innerText = isAiMode ? "AI ACTIVE - YOUR MOVE" : "2 PLAYER MODE";
+            document.getElementById('status-text').innerText = isAiMode ? "AI ACTIVE" : "PVP ACTIVE";
         }
 
         function resetGame() {
             game.reset();
             renderPieces();
-            checkStatus();
+            updateUI();
+            selectedSquare = null;
+            boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
         }
 
         function animate() {
             requestAnimationFrame(animate);
+            controls.update();
             piecesGroup.children.forEach((p, i) => {
                 p.position.y = 0.2 + Math.sin(Date.now() * 0.002 + i) * 0.05;
             });
             renderer.render(scene, camera);
         }
 
-        init();
+        window.onload = init;
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
