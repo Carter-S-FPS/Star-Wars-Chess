@@ -2,119 +2,103 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Voxel Star Wars Chess</title>
+    <title>Voxel Space Chess</title>
     <style>
-        body { margin: 0; background: #1a1a1a; overflow: hidden; font-family: 'Courier New', monospace; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
         #ui {
             position: absolute; top: 10px; width: 100%; text-align: center;
-            color: #fff; text-shadow: 2px 2px #000; pointer-events: none;
+            color: #00eeff; text-shadow: 0 0 10px #00eeff; pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>BLOCK-WORLD TACTICAL</h1>
-        <div id="status">LOADING VOXELS...</div>
+        <h1>DEATH STAR TACTICAL VIEW</h1>
+        <div id="status">SYSTEMS ONLINE</div>
     </div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        let scene, camera, renderer, controls;
-        const pieces = [];
-
-        init();
-        animate();
+    <script>
+        let scene, camera, renderer, pieces = [];
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb); // Minecraft Sky Blue
+            // Dark Space Background
+            scene.background = new THREE.Color(0x020205);
+            
+            // Add Stars
+            const starGeo = new THREE.BufferGeometry();
+            const starCoords = [];
+            for(let i=0; i<2000; i++) {
+                starCoords.push((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
+            }
+            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
+            const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.1});
+            scene.add(new THREE.Points(starGeo, starMat));
 
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(10, 12, 10);
+            camera.position.set(12, 12, 12);
+            camera.lookAt(0, 0, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: false }); // Pixelated feel
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.BasicShadowMap;
             document.body.appendChild(renderer.domElement);
 
-            controls = new OrbitControls(camera, renderer.domElement);
-            
-            // Bright Sunlight
-            const sun = new THREE.DirectionalLight(0xffffff, 3);
-            sun.position.set(5, 10, 7.5);
-            sun.castShadow = true;
-            scene.add(sun);
-            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const light = new THREE.DirectionalLight(0xffffff, 1.2);
+            light.position.set(5, 10, 7);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040));
 
-            createVoxelBoard();
+            createBoard();
             setupPieces();
+            animate();
         }
 
-        // Helper to build a piece from "blocks"
-        function createVoxelPiece(type, color, gridX, gridZ) {
+        function createBlock(group, x, y, z, color) {
+            const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            const mat = new THREE.MeshLambertMaterial({ color: color });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x * 0.2, y * 0.2, z * 0.2);
+            group.add(mesh);
+        }
+
+        function buildPiece(type, side, gridX, gridZ) {
             const group = new THREE.Group();
-            const mat = new THREE.MeshLambertMaterial({ 
-                color: color === 'white' ? 0xeeeeee : 0x333333 
-            });
-            const detailMat = new THREE.MeshLambertMaterial({ 
-                color: color === 'white' ? 0xcc0000 : 0xff0000 
-            });
+            const mainColor = (side === 'black') ? 0x222222 : 0xcccccc;
+            const accentColor = (side === 'black') ? 0xff0000 : 0x00aaff;
 
-            const addBlock = (x, y, z, m = mat) => {
-                const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-                const cube = new THREE.Mesh(geo, m);
-                cube.position.set(x * 0.2, y * 0.2, z * 0.2);
-                cube.castShadow = true;
-                group.add(cube);
-            };
-
-            // Simple Voxel Logic per Rank
-            if (type === 'P') { // Stormtrooper/Pawn
-                for(let y=0; y<3; y++) addBlock(0,y,0);
-                addBlock(0,3,0, detailMat); // Helmet
-            } else if (type === 'R') { // AT-AT / Rook
-                for(let x=-1; x<=1; x++) for(let z=-1; z<=1; z++) addBlock(x,0,z);
-                for(let y=1; y<4; y++) addBlock(0,y,0);
-            } else if (type === 'N') { // Star Destroyer / Knight
-                for(let z=-2; z<=2; z++) for(let x=-z; x<=z; x++) addBlock(x/2, 1, z);
-            } else if (type === 'K') { // Vader / King
-                for(let y=0; y<5; y++) addBlock(0,y,0);
-                addBlock(0,4,0, new THREE.MeshLambertMaterial({color: 0x000000}));
-                addBlock(1,2,0, detailMat); // Saber
-            } else { // Generic "Blocky"
-                for(let y=0; y<4; y++) addBlock(0,y,0);
-                for(let x=-1; x<=1; x++) addBlock(x,3,0);
+            if (type === 'P') { // TIE Fighter / X-Wing Voxel style
+                for(let y=1; y<3; y++) createBlock(group, 0, y, 0, mainColor);
+                createBlock(group, 1, 2, 0, accentColor);
+                createBlock(group, -1, 2, 0, accentColor);
+            } else if (type === 'R') { // AT-AT / Heavy Block
+                for(let x=-1; x<=1; x++) for(let z=-1; z<=1; z++) createBlock(group, x, 0, z, mainColor);
+                for(let y=1; y<4; y++) createBlock(group, 0, y, 0, mainColor);
+            } else if (type === 'K') { // Leader
+                for(let y=0; y<5; y++) createBlock(group, 0, y, 0, mainColor);
+                createBlock(group, 0, 5, 0, accentColor);
+            } else { // Generic Voxel
+                for(let y=0; y<3; y++) createBlock(group, 0, y, 0, mainColor);
             }
 
-            group.position.set(gridX - 3.5, 0.2, gridZ - 3.5);
+            group.position.set(gridX - 3.5, 0, gridZ - 3.5);
             scene.add(group);
             pieces.push(group);
         }
 
-        function createVoxelBoard() {
+        function createBoard() {
             for (let x = 0; x < 8; x++) {
                 for (let z = 0; z < 8; z++) {
                     const isBlack = (x + z) % 2 !== 0;
-                    const geo = new THREE.BoxGeometry(1, 0.4, 1);
+                    const geo = new THREE.BoxGeometry(1, 0.2, 1);
                     const mat = new THREE.MeshLambertMaterial({
-                        color: isBlack ? 0x224422 : 0x336633 // Grass/Dirt colors
+                        color: isBlack ? 0x111111 : 0x333333,
+                        emissive: isBlack ? 0x000000 : 0x001122
                     });
-                    const block = new THREE.Mesh(geo, mat);
-                    block.position.set(x - 3.5, -0.2, z - 3.5);
-                    block.receiveShadow = true;
-                    scene.add(block);
+                    const square = new THREE.Mesh(geo, mat);
+                    square.position.set(x - 3.5, -0.2, z - 3.5);
+                    scene.add(square);
                 }
             }
         }
@@ -122,10 +106,10 @@
         function setupPieces() {
             const layout = ['R','N','B','Q','K','B','N','R'];
             for(let i=0; i<8; i++) {
-                createVoxelPiece('P', 'black', i, 1);
-                createVoxelPiece(layout[i], 'black', i, 0);
-                createVoxelPiece('P', 'white', i, 6);
-                createVoxelPiece(layout[i], 'white', i, 7);
+                buildPiece('P', 'black', i, 1);
+                buildPiece(layout[i], 'black', i, 0);
+                buildPiece('P', 'white', i, 6);
+                buildPiece(layout[i], 'white', i, 7);
             }
         }
 
@@ -133,11 +117,12 @@
             requestAnimationFrame(animate);
             const time = Date.now() * 0.001;
             pieces.forEach((p, i) => {
-                p.rotation.y = Math.sin(time + i) * 0.2;
+                p.position.y = Math.sin(time + i) * 0.05; // Hovering in space
             });
-            controls.update();
             renderer.render(scene, camera);
         }
+
+        window.onload = init;
     </script>
 </body>
 </html>
