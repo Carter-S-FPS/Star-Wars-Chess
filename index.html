@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Corrected Imperial Voxel Chess</title>
+    <title>High-Def Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -15,8 +15,8 @@
 <body>
 
     <div id="ui">
-        <div id="status-text">SHIPYARD RE-ALIGNED</div>
-        <div id="sub-text">STAR DESTROYERS BATTLE-READY</div>
+        <div id="status-text">MODELS RECALIBRATED</div>
+        <div id="sub-text">VISUAL SENSORS OPTIMIZED</div>
     </div>
 
     <div class="controls">
@@ -53,8 +53,8 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-            const light = new THREE.DirectionalLight(0xffffff, 1.2);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const light = new THREE.DirectionalLight(0xffffff, 1.0);
             light.position.set(10, 20, 10);
             scene.add(light);
 
@@ -100,61 +100,71 @@
         function buildUltraPiece(type, side, gridX, gridZ) {
             const group = new THREE.Group();
             const isEmp = (side === 'b');
-            const empC = 0x333333;
-            const jediC = 0xdddddd;
-            const saberC = isEmp ? 0xff0000 : 0x00ffaa;
+            const empGrey = 0x444444;
+            const vaderGrey = 0x181818; // Lighter than muso black
+            const trooperWhite = 0xeeeeee;
+            const jediWhite = 0xffffff;
+            const saberC = isEmp ? 0xff0000 : 0x00ff88;
 
-            // Rotation Logic: Empire faces DOWN (+Z), Jedi faces UP (-Z)
             const facing = isEmp ? 1 : -1;
 
             if(isEmp) {
                 switch(type) {
-                    case 'n': // STAR DESTROYER (The Dagger)
-                        // Build the wedge pointing forward
-                        for(let z=-10; z<=8; z++) {
-                            let width = Math.floor((8 - z) / 2.5); // Narrower scaling
-                            for(let x=-width; x<=width; x++) v(group, x, 3, z * facing, empC);
+                    case 'k': // VADER (Lighter black/grey)
+                        for(let y=0; y<14; y++) {
+                            for(let x=-4; x<=4; x++) v(group, x, y, -2, 0x111111); // Cape
+                            for(let x=-1; x<=1; x++) v(group, x, y, 0, vaderGrey); // Body
                         }
-                        // Command Bridge at the REAR (the wide part)
-                        for(let y=4; y<7; y++) for(let x=-2; x<=2; x++) v(group, x, y, -8 * facing, empC);
-                        break;
-                    case 'k': // VADER
-                        for(let y=0; y<15; y++) {
-                            for(let x=-4; x<=4; x++) v(group, x, y, -2, 0x000000); 
-                            for(let x=-1; x<=1; x++) v(group, x, y, 0, 0x000000); 
-                        }
-                        for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) for(let y=15; y<19; y++) v(group, x, y, z, 0x000000);
+                        // Mask sculpt
+                        for(let y=14; y<18; y++) for(let x=-2; x<=2; x++) for(let z=-1; z<=1; z++) v(group, x, y, z, vaderGrey);
+                        v(group, 0, 16, 1.2, 0x333333); // Breath grill detail
                         for(let y=8; y<22; y++) v(group, 4, y, 2, saberC);
+                        break;
+                    case 'p': // TROOPER (Armor logic)
+                        for(let y=0; y<4; y++) v(group, 0, y, 0, 0x000000); // Black bodysuit
+                        for(let y=4; y<10; y++) v(group, 0, y, 0, trooperWhite); // Chest armor
+                        for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) for(let y=10; y<14; y++) v(group, x, y, z, trooperWhite); // Helmet
+                        for(let x=-2; x<=2; x++) v(group, x, 11, 2.1, 0x000000); // Visor line
+                        break;
+                    case 'n': // STAR DESTROYER
+                        for(let z=-10; z<=8; z++) {
+                            let width = Math.floor((8 - z) / 3); 
+                            for(let x=-width; x<=width; x++) v(group, x, 3, z * facing, empGrey);
+                        }
+                        for(let y=4; y<6; y++) for(let x=-2; x<=2; x++) v(group, x, y, -7 * facing, empGrey);
                         break;
                     case 'r': // AT-AT
                         for(let x=-3; x<=3; x+=6) for(let z=-4; z<=4; z+=8) for(let y=0; y<10; y++) v(group, x, y, z, 0x555555);
                         for(let x=-4; x<=4; x++) for(let z=-7; z<=7; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0x555555);
                         for(let y=11; y<14; y++) for(let x=-2; x<=2; x++) for(let z=7; z<11; z++) v(group, x, y, z * facing, 0x555555);
                         break;
-                    case 'p': // TROOPER
-                        for(let y=0; y<10; y++) v(group, 0, y, 0, 0x111111);
-                        for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) for(let y=10; y<14; y++) v(group, x, y, z, 0xffffff);
-                        break;
-                    default: 
-                        for(let y=0; y<18; y++) v(group, 0, y, 0, empC); break;
+                    default: for(let y=0; y<15; y++) v(group, 0, y, 0, empGrey); break;
                 }
             } else {
-                // JEDI MODELS (Remain standard high-res)
                 switch(type) {
+                    case 'n': // X-WING (Proper X Configuration)
+                        for(let z=-10; z<=6; z++) v(group, 0, 4, z * facing, jediWhite); // Fuselage
+                        // 4 Wings in X shape
+                        for(let i=0; i<8; i++) {
+                            v(group, 1+i, 4+i, -2 * facing, jediWhite); // Top Right
+                            v(group, -1-i, 4+i, -2 * facing, jediWhite); // Top Left
+                            v(group, 1+i, 4-i, -2 * facing, jediWhite); // Bottom Right
+                            v(group, -1-i, 4-i, -2 * facing, jediWhite); // Bottom Left
+                        }
+                        break;
                     case 'k': // JEDI MASTER
                         for(let y=0; y<15; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v(group, x, y, z, 0x4a3728);
                         for(let y=8; y<24; y++) v(group, 4, y, 0, saberC);
-                        break;
-                    case 'n': // X-WING
-                        for(let z=-10; z<=8; z++) v(group, 0, 4, z * facing, jediC);
-                        for(let i=-6; i<=6; i+=12) for(let z=-4; z<2; z++) { v(group, i/2, 2, z * facing, jediC); v(group, i/2, 6, z * facing, jediC); }
                         break;
                     case 'p': // REBEL
                         for(let y=0; y<10; y++) v(group, 0, y, 0, 0x335533);
                         for(let x=-2; x<=2; x++) v(group, x, 10, 0, 0xddccbb);
                         break;
-                    default: // GUARDIAN
-                        for(let y=0; y<15; y++) v(group, 0, y, 0, jediC); break;
+                    case 'r': // FALCON
+                        for(let x=-5; x<=5; x++) for(let z=-5; z<=5; z++) if(x*x + z*z < 25) v(group, x, 2, z, jediWhite);
+                        v(group, 4, 3, 2, 0xaaaaaa);
+                        break;
+                    default: for(let y=0; y<15; y++) v(group, 0, y, 0, jediWhite); break;
                 }
             }
 
@@ -162,6 +172,7 @@
             piecesGroup.add(group);
         }
 
+        // Standard Chess Logic...
         function renderPieces() {
             while(piecesGroup.children.length > 0) piecesGroup.remove(piecesGroup.children[0]);
             const state = game.board();
@@ -187,19 +198,14 @@
                     const move = game.move({ from: selectedSquare, to: coord, promotion: 'q' });
                     selectedSquare = null;
                     boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
-                    if(move) {
-                        renderPieces();
-                        updateUI();
-                        if(isAiMode && !game.game_over()) setTimeout(() => {
-                            const moves = game.moves();
-                            if(moves.length > 0) {
-                                game.move(moves[Math.floor(Math.random()*moves.length)]);
-                                renderPieces(); updateUI();
-                            }
-                        }, 500);
-                    }
+                    if(move) { renderPieces(); updateUI(); if(isAiMode && !game.game_over()) setTimeout(makeAiMove, 500); }
                 }
             }
+        }
+
+        function makeAiMove() {
+            const moves = game.moves();
+            if(moves.length > 0) { game.move(moves[Math.floor(Math.random()*moves.length)]); renderPieces(); updateUI(); }
         }
 
         function updateUI() {
@@ -215,7 +221,6 @@
             renderer.render(scene, camera);
         }
         window.onload = init;
-        window.onresize = () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); };
     </script>
 </body>
 </html>
