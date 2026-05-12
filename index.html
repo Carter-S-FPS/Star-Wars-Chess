@@ -2,29 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Star Wars: 32x32 Clone Wars Chess</title>
+    <title>Star Wars: Vader's Command Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: none; }
-        #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
-        .hud { border: 1px solid #00eeff; background: rgba(0,20,40,0.8); display: inline-block; padding: 10px 30px; box-shadow: 0 0 15px #00eeff; }
+        #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: #ff0000; pointer-events: none; z-index: 10; }
+        .hud { border: 1px solid #ff0000; background: rgba(20,0,0,0.8); display: inline-block; padding: 10px 30px; box-shadow: 0 0 15px #ff0000; }
         .controls { position: absolute; bottom: 25px; width: 100%; display: flex; justify-content: center; gap: 15px; z-index: 10; }
-        button { padding: 10px 20px; background: #000; color: #00eeff; border: 1px solid #00eeff; cursor: pointer; font-weight: bold; }
-        button:hover { background: #00eeff; color: #000; }
+        button { padding: 10px 20px; background: #000; color: #ff0000; border: 1px solid #ff0000; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        button:hover { background: #ff0000; color: #000; }
     </style>
 </head>
 <body>
 
     <div id="ui">
         <div class="hud">
-            <div id="status" style="font-size: 20px; letter-spacing: 3px;">BATTLEFRONT ENGAGED</div>
-            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">COMMANDOS VS BATTLE DROIDS</div>
+            <div id="status" style="font-size: 20px; letter-spacing: 3px;">LORD VADER COMMANDING</div>
+            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">32x32 HI-RES BATTLESPACE</div>
         </div>
     </div>
 
     <div class="controls">
         <button onclick="setMode('pvp')">LOCAL OPS</button>
-        <button onclick="setMode('ai')">SEPARATIST AI</button>
+        <button onclick="setMode('ai')">IMPERIAL AI</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -54,7 +53,7 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             
-            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
             const light = new THREE.DirectionalLight(0xffffff, 0.8);
             light.position.set(10, 20, 10);
             scene.add(light);
@@ -71,7 +70,7 @@
         function createVoxelMesh(coords, color, emissive = 0x000000) {
             if (!coords.length) return new THREE.Group();
             const geo = new THREE.BoxBufferGeometry(S, S, S);
-            const mat = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 2 });
+            const mat = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 3 });
             const mesh = new THREE.InstancedMesh(geo, mat, coords.length);
             const dummy = new THREE.Object3D();
             coords.forEach((c, i) => {
@@ -85,7 +84,7 @@
         function buildVoxelPiece(type, side, gridX) {
             const group = new THREE.Group();
             const isBlack = (side === 'b');
-            let data = { body: [], head: [], saber: [], special: [] };
+            let data = { body: [], head: [], saber: [], special: [], legs: [] };
 
             const fill = (arr, x1, y1, z1, x2, y2, z2) => {
                 for(let x=x1; x<=x2; x++) for(let y=y1; y<=y2; y++) for(let z=z1; z<=z2; z++) arr.push([x,y,z]);
@@ -93,43 +92,63 @@
 
             if (isBlack) {
                 switch(type) {
-                    case 'p': // B1 BATTLE DROID
-                        fill(data.body, -2, 0, -2, 2, 22, 2); // Thin frame
-                        fill(data.head, -2, 22, -1, 2, 28, 6); // Forward-slanted head
-                        group.add(createVoxelMesh(data.body, 0xd2b48c), createVoxelMesh(data.head, 0xc2a47c));
-                        break;
-                    case 'k': // VADER
-                        fill(data.body, -8, 0, -5, 8, 25, 5);
-                        fill(data.head, -6, 25, -6, 6, 35, 4);
-                        fill(data.saber, 10, 5, 3, 11, 45, 4);
-                        group.add(createVoxelMesh(data.body, 0x111111), createVoxelMesh(data.head, 0x000000), createVoxelMesh(data.saber, 0xff0000, 0x550000));
+                    case 'k': // DARTH VADER (KING)
+                        fill(data.body, -8, 0, -6, 8, 25, 4); // Flowing Cape
+                        fill(data.head, -7, 25, -7, 7, 36, 3); // Helmet Silhouette
+                        fill(data.saber, 10, 5, 2, 11, 48, 3); // Red Blade
+                        group.add(createVoxelMesh(data.body, 0x111111), createVoxelMesh(data.head, 0x000000), createVoxelMesh(data.saber, 0xff0000, 0x660000));
                         break;
                     case 'q': // PALPATINE
-                        fill(data.body, -7, 0, -7, 7, 32, 7);
-                        fill(data.special, -3, 18, 7, 3, 20, 9);
-                        group.add(createVoxelMesh(data.body, 0x0a0a0a), createVoxelMesh(data.special, 0x00ffff, 0x0055ff));
+                        fill(data.body, -7, 0, -7, 7, 28, 7);
+                        fill(data.head, -5, 28, -5, 5, 36, 4); 
+                        fill(data.special, -3, 18, 7, 3, 20, 9); 
+                        group.add(createVoxelMesh(data.body, 0x0a0a0a), createVoxelMesh(data.head, 0x050505), createVoxelMesh(data.special, 0x00ffff, 0x0055ff));
                         break;
-                    case 'r': // STAR DESTROYER
-                        for(let z=-16; z<=16; z++) { let w = Math.floor((16-z)/1.2); fill(data.body, -w, 0, z, w, 5, z); }
-                        fill(data.head, -4, 5, -10, 4, 12, -4);
+                    case 'r': // STAR DESTROYER (THIN)
+                        for(let z=-22; z<=12; z++) { 
+                            let w = Math.floor((12-z)/3.5);
+                            fill(data.body, -w, 0, z, w, 4, z); 
+                        }
+                        fill(data.head, -3, 4, -12, 3, 10, -6);
                         group.add(createVoxelMesh(data.body, 0x999999), createVoxelMesh(data.head, 0x888888));
                         break;
-                    case 'n': // AT-AT
+                    case 'n': // AT-AT (LEGS + SWIVEL)
                         fill(data.body, -8, 15, -12, 8, 25, 12);
-                        fill(data.head, -5, 18, 12, 5, 24, 20);
-                        group.add(createVoxelMesh(data.body, 0x777777), createVoxelMesh(data.head, 0x666666));
+                        [[-6,-10],[6,-10],[-6,8],[6,8]].forEach(pos => fill(data.legs, pos[0]-1, 0, pos[1]-1, pos[0]+1, 15, pos[1]+1));
+                        const headNode = new THREE.Group(); headNode.name = "atHead";
+                        let hV = []; fill(hV, -5, 0, 0, 5, 6, 8);
+                        let hM = createVoxelMesh(hV, 0x666666); hM.position.set(0, 18*S, 12*S);
+                        headNode.add(hM); group.add(headNode);
+                        group.add(createVoxelMesh(data.body, 0x777777), createVoxelMesh(data.legs, 0x555555));
                         break;
-                    default: // BISHOP/GENERAL
+                    case 'p': // B1 BATTLE DROID
+                        fill(data.body, -2, 0, -2, 2, 22, 2);
+                        fill(data.head, -2, 22, -1, 2, 28, 6);
+                        group.add(createVoxelMesh(data.body, 0xd2b48c), createVoxelMesh(data.head, 0xc2a47c));
+                        break;
+                    default: 
                         fill(data.body, -5, 0, -4, 5, 22, 4);
                         group.add(createVoxelMesh(data.body, 0x333333));
                 }
             } else {
                 group.rotation.y = Math.PI;
                 switch(type) {
+                    case 'n': // X-WING
+                        fill(data.body, -2, 4, -15, 2, 8, 10);
+                        fill(data.special, -1, 7, -5, 1, 9, 0); 
+                        for(let x=2; x<=12; x++) {
+                            let zBack = -10 + (x-2);
+                            fill(data.body, x, 6, zBack, x, 7, zBack+8); 
+                            fill(data.body, -x, 6, zBack, -x, 7, zBack+8); 
+                        }
+                        fill(data.special, 11, 5, 0, 12, 6, 4); 
+                        fill(data.special, -12, 5, 0, -11, 6, 4); 
+                        group.add(createVoxelMesh(data.body, 0xcccccc), createVoxelMesh(data.special, 0xff0000, 0x440000));
+                        break;
                     case 'p': // CLONE COMMANDO
-                        fill(data.body, -6, 0, -5, 6, 22, 5); // Bulkier Armor
-                        fill(data.head, -5, 22, -5, 5, 30, 4); // Helmet
-                        fill(data.special, -4, 26, 4, 4, 27, 5); // Glowing Visor
+                        fill(data.body, -6, 0, -5, 6, 22, 5);
+                        fill(data.head, -5, 22, -5, 5, 30, 4);
+                        fill(data.special, -4, 26, 4, 4, 27, 5);
                         group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.head, 0xffffff), createVoxelMesh(data.special, 0x00ccff, 0x0088ff));
                         break;
                     case 'k': // LUKE
@@ -139,16 +158,17 @@
                         fill(data.saber, -10, 5, 3, -11, 45, 4);
                         group.add(createVoxelMesh(data.body, 0x222222), createVoxelMesh(data.head, 0xffdbac), createVoxelMesh(data.special, 0xd4af37), createVoxelMesh(data.saber, 0x00ff00, 0x005500));
                         break;
-                    case 'b': // CHEWBACCA / LEIA
-                        if (gridX === 2 || gridX === 5) {
+                    case 'b': // LEIA / CHEWIE
+                        if (gridX === 5) { // LEIA
+                            fill(data.body, -6, 0, -6, 6, 25, 6);
+                            fill(data.head, -4, 25, -4, 4, 33, 4);
+                            fill(data.special, 4, 27, -1, 7, 31, 2);
+                            fill(data.special, -7, 27, -1, -4, 31, 2);
+                            group.add(createVoxelMesh(data.body, 0xffffff), createVoxelMesh(data.head, 0xffdbac), createVoxelMesh(data.special, 0x3d2b1f));
+                        } else { // CHEWIE
                             fill(data.body, -7, 0, -6, 7, 48, 6);
                             fill(data.special, -8, 15, -7, 8, 18, 7);
                             group.add(createVoxelMesh(data.body, 0x4b3621), createVoxelMesh(data.special, 0xcccccc));
-                        } else {
-                            fill(data.body, -6, 0, -6, 6, 25, 6);
-                            fill(data.special, 6, 26, -2, 9, 32, 2);
-                            fill(data.special, -9, 26, -2, -6, 32, 2);
-                            group.add(createVoxelMesh(data.body, 0xffffff), createVoxelMesh(data.special, 0x3d2b1f));
                         }
                         break;
                     case 'r': // R2-D2 / C-3PO
@@ -161,10 +181,6 @@
                             group.add(createVoxelMesh(data.body, 0xd4af37));
                         }
                         break;
-                    default: // BISHOP / CAPTAIN
-                        fill(data.body, -5, 0, -4, 5, 22, 4);
-                        fill(data.head, -5, 22, -5, 5, 30, 5);
-                        group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.head, 0xcc0000));
                 }
             }
             return group;
@@ -207,13 +223,13 @@
             const pts = [];
             for(let i=0; i<4000; i++) pts.push((Math.random()-0.5)*500, (Math.random()-0.5)*500, (Math.random()-0.5)*500);
             geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0x00eeff, size: 0.1})));
+            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.1})));
         }
 
         function createBoard() {
             for (let x=0; x<8; x++) for (let z=0; z<8; z++) {
                 const sq = new THREE.Mesh(new THREE.BoxBufferGeometry(0.98, 0.1, 0.98), 
-                    new THREE.MeshPhongMaterial({ color: (x+z)%2 ? 0x000510 : 0x001a33, transparent: true, opacity: 0.7 }));
+                    new THREE.MeshPhongMaterial({ color: (x+z)%2 ? 0x050000 : 0x220000, transparent: true, opacity: 0.8 }));
                 sq.position.set(x-3.5, -0.05, z-3.5); sq.userData = { x, z };
                 scene.add(sq); boardSquares.push(sq);
             }
@@ -230,7 +246,7 @@
                     const p = game.get(coord);
                     if(p && p.color === game.turn()) {
                         selectedSquare = coord;
-                        bh.material.emissive.setHex(0x00eeff);
+                        bh.material.emissive.setHex(0xff0000);
                     }
                 } else {
                     if(game.move({ from: selectedSquare, to: coord, promotion: 'q' })) {
@@ -253,9 +269,11 @@
             requestAnimationFrame(animate); 
             TWEEN.update(t);
             controls.update(); 
-            const pulse = Date.now()*0.002;
-            piecesGroup.children.forEach((p, i) => {
-                p.position.y = 0.05 + Math.sin(pulse + i)*0.02;
+            const time = Date.now()*0.002;
+            piecesGroup.children.forEach((p) => {
+                p.position.y = 0.05 + Math.sin(time + p.position.x)*0.01;
+                const head = p.getObjectByName("atHead");
+                if(head) head.rotation.y = Math.sin(time * 0.5) * 0.4;
             });
             renderer.render(scene, camera); 
         }
