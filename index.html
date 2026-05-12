@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Star Wars: Saber Edition</title>
+    <title>Star Wars: Solid Voxel Edition</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
         .controls { position: absolute; bottom: 20px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px; box-sizing: border-box; z-index: 10; }
         button { padding: 16px 5px; background: rgba(0, 15, 30, 0.9); color: #00eeff; border: 1px solid #00eeff; font-weight: bold; border-radius: 4px; pointer-events: auto; }
-        canvas { display: block; touch-action: none; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <div id="status-text">SABERS IGNITED</div>
-        <div id="sub-text">LEIA & CHEWIE DEPLOYED</div>
+        <div id="status-text">SOLID GEOMETRY LOADED</div>
+        <div id="sub-text">REINFORCED HULLS & SABERS</div>
     </div>
 
     <div class="controls">
@@ -34,29 +33,30 @@
         let selectedSquare = null;
         let isAiMode = false;
         let piecesGroup = new THREE.Group();
-        let boardGroup = new THREE.Group();
         let boardSquares = [];
-        const S = 0.022; 
+        const S = 0.025; 
 
         function init() {
             game = new Chess();
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x010108);
             camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 10, 10);
+            camera.position.set(0, 12, 12);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const sun = new THREE.PointLight(0xffffff, 1.5); sun.position.set(5, 15, 5); scene.add(sun);
+            
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+            sun.position.set(10, 20, 10);
+            scene.add(sun);
 
             createStars();
             createBoard();
             renderPieces();
-            scene.add(boardGroup);
             scene.add(piecesGroup);
             window.addEventListener('pointerdown', onPointerDown);
             animate();
@@ -65,10 +65,14 @@
         function createComp(coords, color, emissive = 0x000000) {
             if (coords.length === 0) return new THREE.Group();
             const geo = new THREE.BoxBufferGeometry(S, S, S);
-            const mat = new THREE.MeshLambertMaterial({ color: color, emissive: emissive });
+            const mat = new THREE.MeshPhongMaterial({ color: color, emissive: emissive });
             const mesh = new THREE.InstancedMesh(geo, mat, coords.length);
             const d = new THREE.Object3D();
-            coords.forEach((c, i) => { d.position.set(c[0]*S, c[1]*S, c[2]*S); d.updateMatrix(); mesh.setMatrixAt(i, d.matrix); });
+            coords.forEach((c, i) => {
+                d.position.set(c[0]*S, c[1]*S, c[2]*S);
+                d.updateMatrix();
+                mesh.setMatrixAt(i, d.matrix);
+            });
             return mesh;
         }
 
@@ -76,76 +80,91 @@
             const group = new THREE.Group();
             const isEmp = (side === 'b');
             group.userData = { type, side, gridX, gridZ };
-            let v = { body: [], head: [], saber: [], det: [], skin: [], hair: [] };
+            let v = { body: [], head: [], saber: [], det: [], skin: [] };
 
-            if(isEmp) { // EMPIRE (BLACK)
+            if(isEmp) { // EMPIRE
                 switch(type) {
                     case 'k': // VADER
-                        for(let y=0; y<20; y++) for(let x=-4; x<=4; x++) for(let z=-3; z<=3; z++) v.body.push([x,y,z]);
+                        for(let y=0; y<22; y++) for(let x=-4; x<=4; x++) for(let z=-3; z<=3; z++) v.body.push([x,y,z]);
                         for(let y=20; y<26; y++) for(let x=-5; x<=5; x++) for(let z=-5; z<=2; z++) v.head.push([x,y,z]);
-                        for(let y=5; y<25; y++) v.saber.push([6, y, 2]); // Red Saber
-                        group.add(createComp(v.body, 0x111111), createComp(v.head, 0x050505), createComp(v.saber, 0xff0000, 0xaa0000));
+                        for(let y=5; y<28; y++) for(let x=5; x<7; x++) v.saber.push([x, y, 2]); // Thick Red Saber
+                        group.add(createComp(v.body, 0x111111), createComp(v.head, 0x000000), createComp(v.saber, 0xff0000, 0x660000));
                         break;
                     case 'q': // PALPATINE
                         for(let y=0; y<22; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.body.push([x,y,z]);
-                        v.skin.push([0, 20, 3], [1, 20, 3], [-1, 20, 3]);
-                        group.add(createComp(v.body, 0x0a0a0a), createComp(v.skin, 0xcccccc));
+                        for(let y=18; y<24; y++) for(let x=-3; x<=3; x++) for(let z=2; z<=5; z++) v.body.push([x,y,z]);
+                        v.skin.push([0, 20, 2], [1, 20, 2], [-1, 20, 2]);
+                        group.add(createComp(v.body, 0x0a0a0a), createComp(v.skin, 0xdddddd));
                         break;
                     case 'b': // ROYAL GUARD
-                        for(let y=0; y<25; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.body.push([x,y,z]);
-                        group.add(createComp(v.body, 0x880000));
+                        for(let y=0; y<18; y++) for(let x=-4; x<=4; x++) for(let z=-4; z<=4; z++) v.body.push([x,y,z]);
+                        for(let y=18; y<25; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.head.push([x,y,z]);
+                        group.add(createComp(v.body, 0x990000), createComp(v.head, 0x770000));
                         break;
-                    case 'n': // AT-AT
-                        for(let x=-4; x<=4; x++) for(let y=10; y<17; y++) for(let z=-7; z<=7; z++) v.body.push([x,y,z]);
-                        const h = createComp(v.head, 0x777777); h.position.set(0, 13.5*S, 7*S); h.name="atat_head";
-                        for(let x=-3; x<=3; x++) for(let y=-2; y<2; y++) for(let z=0; z<5; z++) v.head.push([x,y,z]);
-                        group.add(createComp(v.body, 0x666666), h);
+                    case 'n': // AT-AT (Fixed Legs/Head)
+                        for(let x=-5; x<=5; x++) for(let y=12; y<20; y++) for(let z=-8; z<=8; z++) v.body.push([x,y,z]);
+                        // Thick Legs
+                        [[-4,-6],[4,-6],[-4,6],[4,6]].forEach(p => { 
+                            for(let y=0; y<12; y++) for(let ix=-1; ix<=1; ix++) for(let iz=-1; iz<=1; iz++) v.body.push([p[0]+ix, y, p[1]+iz]); 
+                        });
+                        // Thick Head
+                        const hGroup = new THREE.Group(); hGroup.name = "atat_head";
+                        let hVox = []; for(let x=-4; x<=4; x++) for(let y=-3; y<=3; y++) for(let z=0; z<=6; z++) hVox.push([x,y,z]);
+                        const hMesh = createComp(hVox, 0x777777); hMesh.position.set(0, 16*S, 8*S); hGroup.add(hMesh);
+                        group.add(createComp(v.body, 0x666666), hGroup);
                         break;
-                    case 'r': // STAR DESTROYER
-                        for(let z=-12; z<=10; z++) { let w = Math.floor((10-z)/2); for(let x=-w; x<=w; x++) v.body.push([x, 5, z]); }
+                    case 'r': // STAR DESTROYER (Solid Hull)
+                        for(let z=-12; z<=12; z++) {
+                            let w = Math.floor((12-z)/1.5);
+                            for(let x=-w; x<=w; x++) for(let y=4; y<=7; y++) v.body.push([x, y, z]);
+                        }
+                        // Bridge
+                        for(let x=-4; x<=4; x++) for(let y=8; y<=11; y++) for(let z=-2; z<=2; z++) v.body.push([x,y,z]);
                         group.add(createComp(v.body, 0x555555));
                         break;
-                    default: // PAWNS (TIE/STORM)
-                        for(let y=0; y<15; y++) for(let x=-3; x<=3; x++) v.body.push([x,y,0]);
+                    default: // PAWN
+                        for(let y=0; y<14; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.body.push([x,y,z]);
                         group.add(createComp(v.body, 0x111111));
                 }
-            } else { // REBELS (WHITE)
+            } else { // REBELS
                 group.rotation.y = Math.PI;
                 switch(type) {
                     case 'k': // LUKE
-                        for(let y=0; y<18; y++) for(let x=-3; x<=3; x++) v.body.push([x,y,0]);
-                        for(let y=18; y<23; y++) for(let x=-3; x<=3; x++) v.skin.push([x,y,0]);
-                        for(let y=5; y<25; y++) v.saber.push([-6, y, 0]); // Green Saber
-                        group.add(createComp(v.body, 0x222222), createComp(v.skin, 0xffdbac), createComp(v.saber, 0x00ff00, 0x00aa00));
+                        for(let y=0; y<18; y++) for(let x=-3; x<=3; x++) for(let z=-2; z<=2; z++) v.body.push([x,y,z]);
+                        for(let y=18; y<24; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.skin.push([x,y,z]);
+                        for(let y=5; y<28; y++) for(let x=-7; x<-5; x++) v.saber.push([x, y, 0]); // Thick Green Saber
+                        group.add(createComp(v.body, 0x222222), createComp(v.skin, 0xffdbac), createComp(v.saber, 0x00ff00, 0x006600));
                         break;
                     case 'q': // YODA
-                        for(let y=0; y<10; y++) for(let x=-3; x<=3; x++) v.body.push([x,y,0]);
-                        for(let y=5; y<15; y++) v.saber.push([5, y, 0]); // Small Green Saber
-                        group.add(createComp(v.body, 0x4f7942), createComp(v.saber, 0x00ff00, 0x00aa00));
+                        for(let y=0; y<10; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.body.push([x,y,z]);
+                        for(let y=5; y<18; y++) for(let x=5; x<7; x++) v.saber.push([x, y, 0]);
+                        group.add(createComp(v.body, 0x4f7942), createComp(v.saber, 0x00ff00, 0x004400));
                         break;
                     case 'b': // LEIA & CHEWIE
                         if(gridX === 2 || gridX === 5) {
-                            if (gridX === 2) { // LEIA
-                                for(let y=0; y<18; y++) for(let x=-3; x<=3; x++) v.body.push([x,y,0]);
-                                v.hair.push([4,19,0], [4,20,0], [-4,19,0], [-4,20,0]); // Buns
-                                group.add(createComp(v.body, 0xeeeeee), createComp(v.hair, 0x4b3621));
-                            } else { // CHEWBACCA
-                                for(let y=0; y<24; y++) for(let x=-4; x<=4; x++) for(let z=-2; z<=2; z++) v.body.push([x,y,z]);
-                                v.det.push([0, 15, 2.1], [1, 14, 2.1]); // Bandolier
-                                group.add(createComp(v.body, 0x4b3621), createComp(v.det, 0xcccccc));
+                            if (gridX === 2) { // Leia
+                                for(let y=0; y<18; y++) for(let x=-3; x<=3; x++) for(let z=-2; z<=2; z++) v.body.push([x,y,z]);
+                                group.add(createComp(v.body, 0xeeeeee));
+                            } else { // Chewie
+                                for(let y=0; y<25; y++) for(let x=-4; x<=4; x++) for(let z=-3; z<=3; z++) v.body.push([x,y,z]);
+                                group.add(createComp(v.body, 0x4b3621));
                             }
                         }
                         break;
-                    case 'n': // X-WING
-                        for(let x=-2; x<=2; x++) for(let z=-10; z<=10; z++) v.body.push([x,6,z]);
-                        group.add(createComp(v.body, 0xdddddd));
+                    case 'n': // X-WING (Solid Wings)
+                        for(let x=-2; x<=2; x++) for(let y=5; y<=7; y++) for(let z=-12; z<=12; z++) v.body.push([x,y,z]); // Fuselage
+                        // X-Wings with depth
+                        for(let i=3; i<12; i++) {
+                            v.body.push([i, 7+(i/3), -5], [-i, 7+(i/3), -5], [i, 5-(i/3), -5], [-i, 5-(i/3), -5]);
+                        }
+                        group.add(createComp(v.body, 0xcccccc));
                         break;
                     case 'r': // DROID SPLIT
-                        if (gridX < 4) { for(let y=0; y<10; y++) v.body.push([0,y,0]); group.add(createComp(v.body, 0xffffff)); } // R2
-                        else { for(let y=0; y<18; y++) v.body.push([0,y,0]); group.add(createComp(v.body, 0xd4af37)); } // 3PO
+                        if (gridX < 4) { for(let y=0; y<12; y++) for(let x=-2; x<=2; x++) for(let z=-2; z<=2; z++) v.body.push([x,y,z]); group.add(createComp(v.body, 0xffffff)); }
+                        else { for(let y=0; y<20; y++) for(let x=-2; x<=2; x++) v.body.push([x,y,0]); group.add(createComp(v.body, 0xd4af37)); }
                         break;
-                    default: // CLONE PAWNS
-                        for(let y=0; y<14; y++) for(let x=-3; x<=3; x++) v.body.push([x,y,0]);
+                    default: // CLONE PAWN
+                        for(let y=0; y<15; y++) for(let x=-3; x<=3; x++) for(let z=-3; z<=3; z++) v.body.push([x,y,z]);
                         group.add(createComp(v.body, 0xffffff));
                 }
             }
@@ -155,17 +174,17 @@
 
         function createStars() {
             const geo = new THREE.BufferGeometry(); const pos = [];
-            for(let i=0; i<1000; i++) pos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
+            for(let i=0; i<1500; i++) pos.push((Math.random()-0.5)*300, (Math.random()-0.5)*300, (Math.random()-0.5)*300);
             geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.1})));
+            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.15})));
         }
 
         function createBoard() {
             for (let x=0; x<8; x++) for (let z=0; z<8; z++) {
                 const isB = (x+z)%2!==0;
-                const sq = new THREE.Mesh(new THREE.BoxBufferGeometry(1, 0.2, 1), new THREE.MeshPhongMaterial({ color: isB ? 0x050505 : 0x151515 }));
-                sq.position.set(x-3.5, -0.1, z-3.5); sq.userData = { x, z };
-                boardGroup.add(sq); boardSquares.push(sq);
+                const sq = new THREE.Mesh(new THREE.BoxBufferGeometry(1, 0.3, 1), new THREE.MeshPhongMaterial({ color: isB ? 0x050505 : 0x151515 }));
+                sq.position.set(x-3.5, -0.15, z-3.5); sq.userData = { x, z };
+                scene.add(sq); boardSquares.push(sq);
             }
         }
 
@@ -176,7 +195,6 @@
         }
 
         function onPointerDown(event) {
-            if (event.target.tagName === 'BUTTON') return;
             const rect = renderer.domElement.getBoundingClientRect();
             const m = new THREE.Vector2(((event.clientX-rect.left)/rect.width)*2-1, -((event.clientY-rect.top)/rect.height)*2+1);
             const ray = new THREE.Raycaster(); ray.setFromCamera(m, camera);
@@ -200,7 +218,16 @@
 
         function setMode(m) { isAiMode = (m === 'ai'); game.reset(); renderPieces(); }
         function resetGame() { game.reset(); renderPieces(); selectedSquare = null; }
-        function animate() { requestAnimationFrame(animate); controls.update(); const time = Date.now()*0.002; piecesGroup.children.forEach((p, i) => { p.position.y = 0.1 + Math.sin(time+i)*0.02; const h = p.getObjectByName("atat_head"); if(h) h.rotation.y = Math.sin(time*0.5+i)*0.4; }); renderer.render(scene, camera); }
+        function animate() { 
+            requestAnimationFrame(animate); 
+            controls.update(); 
+            const time = Date.now()*0.002; 
+            piecesGroup.children.forEach((p, i) => { 
+                p.position.y = 0.1 + Math.sin(time+i)*0.03; 
+                const h = p.getObjectByName("atat_head"); if(h) h.rotation.y = Math.sin(time*0.5+i)*0.5;
+            }); 
+            renderer.render(scene, camera); 
+        }
         window.onload = init;
     </script>
 </body>
