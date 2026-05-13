@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Star Wars: Tactical Voxel Chess</title>
+    <title>Star Wars: Voxel Tactical Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: none; }
         #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -16,8 +16,8 @@
 
     <div id="ui">
         <div class="hud">
-            <div id="status" style="font-size: 20px; letter-spacing: 3px;">S-FOILS IN ATTACK POSITION</div>
-            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">VOXEL BATTLESPACE ALPHA</div>
+            <div id="status" style="font-size: 20px; letter-spacing: 3px;">REAR-WING X-WINGS DEPLOYED</div>
+            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">TACTICAL GRID ACTIVE</div>
         </div>
     </div>
 
@@ -50,7 +50,7 @@
             document.body.appendChild(renderer.domElement);
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8)); 
+            scene.add(new THREE.AmbientLight(0xffffff, 0.9)); 
             const light = new THREE.DirectionalLight(0xffffff, 1.2);
             light.position.set(5, 15, 10);
             scene.add(light);
@@ -115,13 +115,13 @@
                         headNode.add(hM); group.add(headNode);
                         group.add(createVoxelMesh(data.body, 0xaaaaaa), createVoxelMesh(data.legs, 0x777777));
                         break;
-                    case 'p': // B1 DROID (WITH ARMS & GUN)
-                        fill(data.body, -2, 10, -2, 2, 22, 2); // Torso
-                        fill(data.legs, -2, 0, -1, -1, 10, 1); // Leg L
-                        fill(data.legs, 1, 0, -1, 2, 10, 1); // Leg R
-                        fill(data.head, -2, 22, -1, 2, 28, 6); // Elongated head
-                        fill(data.arms, 2, 15, 0, 6, 17, 2); // Arm holding gun
-                        fill(data.blaster, 5, 12, 1, 7, 14, 10); // E-5 Blaster
+                    case 'p': // B1 DROID
+                        fill(data.body, -2, 10, -2, 2, 22, 2); 
+                        fill(data.legs, -2, 0, -1, -1, 10, 1); 
+                        fill(data.legs, 1, 0, -1, 2, 10, 1); 
+                        fill(data.head, -2, 22, -1, 2, 28, 6); 
+                        fill(data.arms, 2, 15, 0, 6, 17, 2); 
+                        fill(data.blaster, 5, 12, 1, 7, 14, 10); 
                         group.add(createVoxelMesh(data.body, 0xe2c4ac), createVoxelMesh(data.legs, 0xd2b49c), createVoxelMesh(data.head, 0xd2b49c), createVoxelMesh(data.arms, 0xe2c4ac), createVoxelMesh(data.blaster, 0x222222));
                         break;
                 }
@@ -133,26 +133,19 @@
                         fill(data.saber, -6, 5, 4, -7, 25, 5); 
                         group.add(createVoxelMesh(data.body, 0xded1b1), createVoxelMesh(data.head, 0x4f7942), createVoxelMesh(data.saber, 0x00ff00, 0x00aa00));
                         break;
-                    case 'n': // X-WING (TRUE SLAB X-FORMATION)
-                        fill(data.body, -3, 4, -20, 3, 9, 12); // Fuselage
-                        fill(data.special, -2, 9, -5, 2, 11, 4); // Canopy
-                        // 4 Thick Slab Wings in X
-                        for(let i=3; i<=15; i++){
+                    case 'n': // TAN X-WING (WINGS AT REAR)
+                        fill(data.body, -3, 4, -20, 3, 9, 12); // Elongated TAN body
+                        fill(data.special, -2, 8, 2, 2, 10, 8); // Canopy
+                        // Wings shifted to the back (-15 to -20 range)
+                        for(let i=3; i<=16; i++){
                             let offset = (i-3) * 0.9;
-                            let zPos = -10 + (i-3)*0.3;
-                            fill(data.body, i, 6+offset, zPos, i+3, 8+offset, zPos+10); // TR
-                            fill(data.body, -i-3, 6+offset, zPos, -i, 8+offset, zPos+10); // TL
-                            fill(data.body, i, 5-offset, zPos, i+3, 7-offset, zPos+10); // BR
-                            fill(data.body, -i-3, 5-offset, zPos, -i, 7-offset, zPos+10); // BL
-                            // Laser cannons at tips
-                            if(i === 15) {
-                                fill(data.blaster, 16, 6+offset, zPos+10, 17, 8+offset, zPos+16);
-                                fill(data.blaster, -17, 6+offset, zPos+10, -16, 8+offset, zPos+16);
-                                fill(data.blaster, 16, 5-offset, zPos+10, 17, 7-offset, zPos+16);
-                                fill(data.blaster, -17, 5-offset, zPos+10, -16, 7-offset, zPos+16);
-                            }
+                            let zPos = -18; // Rear fixed position
+                            fill(data.body, i, 6+offset, zPos, i+3, 8+offset, zPos+4); // TR
+                            fill(data.body, -i-3, 6+offset, zPos, -i, 8+offset, zPos+4); // TL
+                            fill(data.body, i, 5-offset, zPos, i+3, 7-offset, zPos+4); // BR
+                            fill(data.body, -i-3, 5-offset, zPos, -i, 7-offset, zPos+4); // BL
                         }
-                        group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.special, 0x33ccff, 0x004466), createVoxelMesh(data.blaster, 0xbb0000));
+                        group.add(createVoxelMesh(data.body, 0xd2b48c), createVoxelMesh(data.special, 0x33ccff));
                         break;
                     case 'r': // ROOKS
                         if (gridX === 0) { // C-3PO
