@@ -62,6 +62,71 @@
             animate();
         }
 
+        /* --- SMARTER AI LOGIC --- */
+        const weights = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
+        
+        function evaluateBoard(game) {
+            let total = 0;
+            const board = game.board();
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const piece = board[i][j];
+                    if (piece) {
+                        let val = weights[piece.type];
+                        // Bonus for center control
+                        if (i >= 3 && i <= 4 && j >= 3 && j <= 4) val += 5;
+                        total += (piece.color === 'w' ? val : -val);
+                    }
+                }
+            }
+            return total;
+        }
+
+        function minimax(game, depth, alpha, beta, isMaximizing) {
+            if (depth === 0) return -evaluateBoard(game);
+            const moves = game.moves();
+            if (isMaximizing) {
+                let bestScore = -9999;
+                for (let move of moves) {
+                    game.move(move);
+                    bestScore = Math.max(bestScore, minimax(game, depth - 1, alpha, beta, !isMaximizing));
+                    game.undo();
+                    alpha = Math.max(alpha, bestScore);
+                    if (beta <= alpha) break;
+                }
+                return bestScore;
+            } else {
+                let bestScore = 9999;
+                for (let move of moves) {
+                    game.move(move);
+                    bestScore = Math.min(bestScore, minimax(game, depth - 1, alpha, beta, !isMaximizing));
+                    game.undo();
+                    beta = Math.min(beta, bestScore);
+                    if (beta <= alpha) break;
+                }
+                return bestScore;
+            }
+        }
+
+        function makeBestMove() {
+            const moves = game.moves();
+            if (moves.length === 0) return;
+            let bestMove = null;
+            let bestValue = -9999;
+
+            for (let move of moves) {
+                game.move(move);
+                let boardValue = minimax(game, 2, -10000, 10000, false);
+                game.undo();
+                if (boardValue > bestValue) {
+                    bestValue = boardValue;
+                    bestMove = move;
+                }
+            }
+            game.move(bestMove);
+            syncPieces();
+        }
+
         function createVoxelMesh(coords, color, emissive = 0x000000) {
             if (!coords.length) return new THREE.Group();
             const geo = new THREE.BoxBufferGeometry(S, S, S);
@@ -133,17 +198,16 @@
                         fill(data.saber, -6, 5, 4, -7, 25, 5); 
                         group.add(createVoxelMesh(data.body, 0xded1b1), createVoxelMesh(data.head, 0x4f7942), createVoxelMesh(data.saber, 0x00ff00, 0x00aa00));
                         break;
-                    case 'n': // TAN X-WING (WINGS AT REAR)
-                        fill(data.body, -3, 4, -20, 3, 9, 12); // Elongated TAN body
-                        fill(data.special, -2, 8, 2, 2, 10, 8); // Canopy
-                        // Wings shifted to the back (-15 to -20 range)
+                    case 'n': // TAN X-WING
+                        fill(data.body, -3, 4, -20, 3, 9, 12); 
+                        fill(data.special, -2, 8, 2, 2, 10, 8); 
                         for(let i=3; i<=16; i++){
                             let offset = (i-3) * 0.9;
-                            let zPos = -18; // Rear fixed position
-                            fill(data.body, i, 6+offset, zPos, i+3, 8+offset, zPos+4); // TR
-                            fill(data.body, -i-3, 6+offset, zPos, -i, 8+offset, zPos+4); // TL
-                            fill(data.body, i, 5-offset, zPos, i+3, 7-offset, zPos+4); // BR
-                            fill(data.body, -i-3, 5-offset, zPos, -i, 7-offset, zPos+4); // BL
+                            let zPos = -18; 
+                            fill(data.body, i, 6+offset, zPos, i+3, 8+offset, zPos+4);
+                            fill(data.body, -i-3, 6+offset, zPos, -i, 8+offset, zPos+4);
+                            fill(data.body, i, 5-offset, zPos, i+3, 7-offset, zPos+4);
+                            fill(data.body, -i-3, 5-offset, zPos, -i, 7-offset, zPos+4);
                         }
                         group.add(createVoxelMesh(data.body, 0xd2b48c), createVoxelMesh(data.special, 0x33ccff));
                         break;
@@ -247,9 +311,9 @@
                     if(game.move({ from: selectedSquare, to: coord, promotion: 'q' })) {
                         syncPieces();
                         document.getElementById('turn').innerText = game.turn() === 'w' ? "REBEL TURN" : "EMPIRE TURN";
-                        if(isAiMode) setTimeout(() => {
-                            const moves = game.moves();
-                            if(moves.length) { game.move(moves[Math.floor(Math.random()*moves.length)]); syncPieces(); }
+                        if(isAiMode && !game.game_over()) setTimeout(() => {
+                            makeBestMove();
+                            document.getElementById('turn').innerText = "REBEL TURN";
                         }, 600);
                     }
                     selectedSquare = null; boardSquares.forEach(s => s.material.emissive.setHex(0x000000));
