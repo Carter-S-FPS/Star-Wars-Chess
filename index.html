@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Star Wars: Iconic Voxel Chess</title>
+    <title>Star Wars: Tactical Voxel Chess</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: none; }
         #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: #00eeff; pointer-events: none; z-index: 10; }
@@ -16,8 +16,8 @@
 
     <div id="ui">
         <div class="hud">
-            <div id="status" style="font-size: 20px; letter-spacing: 3px;">CHARACTER DETAIL ENHANCED</div>
-            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">REBEL HEROES VS GALACTIC EMPIRE</div>
+            <div id="status" style="font-size: 20px; letter-spacing: 3px;">S-FOILS IN ATTACK POSITION</div>
+            <div id="turn" style="font-size: 10px; opacity: 0.8; margin-top: 5px;">VOXEL BATTLESPACE ALPHA</div>
         </div>
     </div>
 
@@ -79,7 +79,7 @@
         function buildVoxelPiece(type, side, gridX) {
             const group = new THREE.Group();
             const isBlack = (side === 'b');
-            let data = { body: [], head: [], saber: [], special: [], legs: [], blaster: [], hair: [] };
+            let data = { body: [], head: [], saber: [], special: [], legs: [], blaster: [], hair: [], arms: [] };
             const fill = (arr, x1, y1, z1, x2, y2, z2) => {
                 for(let x=x1; x<=x2; x++) for(let y=y1; y<=y2; y++) for(let z=z1; z<=z2; z++) arr.push([x,y,z]);
             };
@@ -93,12 +93,12 @@
                         break;
                     case 'q': // PALPATINE
                         fill(data.body, -7, 0, -7, 7, 28, 7); fill(data.head, -5, 28, -5, 5, 36, 4); 
-                        fill(data.special, -2, 30, 4, 2, 33, 5); // Face
+                        fill(data.special, -2, 30, 4, 2, 33, 5);
                         group.add(createVoxelMesh(data.body, 0x111111), createVoxelMesh(data.head, 0x0a0a0a), createVoxelMesh(data.special, 0xded1b1));
                         break;
                     case 'r': // STAR DESTROYER
-                        for(let z=-30; z<=15; z++) { let w = Math.floor((15-z)/3); fill(data.body, -w, 0, z, w, 6, z); }
-                        fill(data.head, -4, 6, -15, 4, 14, -8);
+                        for(let z=-35; z<=20; z++) { let w = Math.floor((20-z)/2.5); fill(data.body, -w, 0, z, w, 7, z); }
+                        fill(data.head, -5, 7, -18, 5, 16, -10);
                         group.add(createVoxelMesh(data.body, 0xbbbbbb), createVoxelMesh(data.head, 0x999999));
                         break;
                     case 'b': // ROYAL GUARDS
@@ -115,10 +115,14 @@
                         headNode.add(hM); group.add(headNode);
                         group.add(createVoxelMesh(data.body, 0xaaaaaa), createVoxelMesh(data.legs, 0x777777));
                         break;
-                    case 'p': // B1 DROID
-                        fill(data.body, -2, 0, -2, 2, 22, 2); fill(data.head, -2, 22, -1, 2, 28, 6);
-                        fill(data.blaster, 3, 10, 0, 4, 12, 8); 
-                        group.add(createVoxelMesh(data.body, 0xe2c4ac), createVoxelMesh(data.head, 0xd2b49c), createVoxelMesh(data.blaster, 0x222222));
+                    case 'p': // B1 DROID (WITH ARMS & GUN)
+                        fill(data.body, -2, 10, -2, 2, 22, 2); // Torso
+                        fill(data.legs, -2, 0, -1, -1, 10, 1); // Leg L
+                        fill(data.legs, 1, 0, -1, 2, 10, 1); // Leg R
+                        fill(data.head, -2, 22, -1, 2, 28, 6); // Elongated head
+                        fill(data.arms, 2, 15, 0, 6, 17, 2); // Arm holding gun
+                        fill(data.blaster, 5, 12, 1, 7, 14, 10); // E-5 Blaster
+                        group.add(createVoxelMesh(data.body, 0xe2c4ac), createVoxelMesh(data.legs, 0xd2b49c), createVoxelMesh(data.head, 0xd2b49c), createVoxelMesh(data.arms, 0xe2c4ac), createVoxelMesh(data.blaster, 0x222222));
                         break;
                 }
             } else {
@@ -129,16 +133,26 @@
                         fill(data.saber, -6, 5, 4, -7, 25, 5); 
                         group.add(createVoxelMesh(data.body, 0xded1b1), createVoxelMesh(data.head, 0x4f7942), createVoxelMesh(data.saber, 0x00ff00, 0x00aa00));
                         break;
-                    case 'n': // X-WING
-                        fill(data.body, -2, 4, -15, 2, 8, 10);
-                        for(let i=3; i<=14; i++) {
-                            let zB = -10 + (i-3)*0.4;
-                            fill(data.special, i, 6 + (i-3)*0.8, zB, i+2, 7 + (i-3)*0.8, zB+10); 
-                            fill(data.special, -i-2, 6 + (i-3)*0.8, zB, -i, 7 + (i-3)*0.8, zB+10); 
-                            fill(data.special, i, 6 - (i-3)*0.8, zB, i+2, 7 - (i-3)*0.8, zB+10); 
-                            fill(data.special, -i-2, 6 - (i-3)*0.8, zB, -i, 7 - (i-3)*0.8, zB+10); 
+                    case 'n': // X-WING (TRUE SLAB X-FORMATION)
+                        fill(data.body, -3, 4, -20, 3, 9, 12); // Fuselage
+                        fill(data.special, -2, 9, -5, 2, 11, 4); // Canopy
+                        // 4 Thick Slab Wings in X
+                        for(let i=3; i<=15; i++){
+                            let offset = (i-3) * 0.9;
+                            let zPos = -10 + (i-3)*0.3;
+                            fill(data.body, i, 6+offset, zPos, i+3, 8+offset, zPos+10); // TR
+                            fill(data.body, -i-3, 6+offset, zPos, -i, 8+offset, zPos+10); // TL
+                            fill(data.body, i, 5-offset, zPos, i+3, 7-offset, zPos+10); // BR
+                            fill(data.body, -i-3, 5-offset, zPos, -i, 7-offset, zPos+10); // BL
+                            // Laser cannons at tips
+                            if(i === 15) {
+                                fill(data.blaster, 16, 6+offset, zPos+10, 17, 8+offset, zPos+16);
+                                fill(data.blaster, -17, 6+offset, zPos+10, -16, 8+offset, zPos+16);
+                                fill(data.blaster, 16, 5-offset, zPos+10, 17, 7-offset, zPos+16);
+                                fill(data.blaster, -17, 5-offset, zPos+10, -16, 7-offset, zPos+16);
+                            }
                         }
-                        group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.special, 0xdddddd));
+                        group.add(createVoxelMesh(data.body, 0xeeeeee), createVoxelMesh(data.special, 0x33ccff, 0x004466), createVoxelMesh(data.blaster, 0xbb0000));
                         break;
                     case 'r': // ROOKS
                         if (gridX === 0) { // C-3PO
@@ -154,18 +168,18 @@
                         fill(data.special, -4, 26, 4, 4, 27, 5);
                         group.add(createVoxelMesh(data.body, 0xffffff), createVoxelMesh(data.head, 0xffffff), createVoxelMesh(data.special, 0x00eeff, 0x0088ff));
                         break;
-                    case 'k': // LUKE (WITH HAIR)
+                    case 'k': // LUKE
                         fill(data.body, -6, 0, -4, 6, 25, 4); fill(data.head, -5, 25, -5, 5, 30, 5);
-                        fill(data.hair, -6, 30, -5, 6, 34, 6); // Sandy Blonde Hair
+                        fill(data.hair, -6, 30, -5, 6, 34, 6); 
                         fill(data.saber, -10, 5, 3, -11, 45, 4);
                         group.add(createVoxelMesh(data.body, 0x333333), createVoxelMesh(data.head, 0xffdbac), createVoxelMesh(data.hair, 0xd4b483), createVoxelMesh(data.saber, 0x00ff00, 0x00aa00));
                         break;
                     case 'b': // LEIA / CHEWIE
-                        if (gridX === 5) { // LEIA (WITH HAIR BUNS)
+                        if (gridX === 5) { // LEIA
                             fill(data.body, -6, 0, -6, 6, 25, 6); fill(data.head, -4, 25, -4, 4, 30, 4);
-                            fill(data.hair, -4, 30, -4, 4, 33, 4); // Top hair
-                            fill(data.hair, 4, 27, -1, 7, 31, 2); // Bun R
-                            fill(data.hair, -7, 27, -1, -4, 31, 2); // Bun L
+                            fill(data.hair, -4, 30, -4, 4, 33, 4); 
+                            fill(data.hair, 4, 27, -1, 7, 31, 2); 
+                            fill(data.hair, -7, 27, -1, -4, 31, 2); 
                             group.add(createVoxelMesh(data.body, 0xffffff), createVoxelMesh(data.head, 0xffdbac), createVoxelMesh(data.hair, 0x4b3621));
                         } else { // CHEWIE
                             fill(data.body, -7, 0, -6, 7, 48, 6); fill(data.special, -8, 15, -7, 8, 18, 7);
